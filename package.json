@@ -1,0 +1,13 @@
+{
+  "name": "flybrain-swatter",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@flybrain/web",
+    "dev": "npm run dev --workspace=@flybrain/web",
+    "typecheck": "npm run typecheck --workspace=@flybrain/web"
+  }
+}

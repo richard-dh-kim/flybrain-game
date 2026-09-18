@@ -1,0 +1,19 @@
+{
+  "name": "@flybrain/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:wasm && tsc --noEmit && vite build",
+    "build:wasm": "node ../../scripts/build-wasm.mjs",
+    "dev": "vite",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^7.1.3"
+  }
+}

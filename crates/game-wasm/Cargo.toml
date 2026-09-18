@@ -1,0 +1,16 @@
+[package]
+name = "flybrain-game-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "WebAssembly boundary for the FlyBrain Swatter simulation"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+flybrain-game-core = { path = "../game-core" }
+wasm-bindgen = "0.2"
+
+[lints]
+workspace = true

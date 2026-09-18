@@ -1,0 +1,102 @@
+:root {
+  color: #38251f;
+  background: #211915;
+  font-family: Georgia, "Times New Roman", serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(185, 112, 80, 0.3), transparent 38rem),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 5px),
+    #211915;
+}
+
+main {
+  width: min(100% - 2rem, 1080px);
+  margin: 0 auto;
+  padding: 2.5rem 0 3rem;
+}
+
+.masthead {
+  margin: 0 auto 1.4rem;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #d6926e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(0.68rem, 1.6vw, 0.82rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: #f2cf9b;
+  font-size: clamp(2.6rem, 8vw, 5.5rem);
+  font-style: italic;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  text-shadow: 0.05em 0.06em 0 #7f392e;
+}
+
+.subtitle {
+  margin: 0.65rem 0 0;
+  color: #d8bca1;
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+}
+
+.cabinet {
+  overflow: hidden;
+  padding: clamp(0.45rem, 1.5vw, 0.85rem);
+  border: 3px solid #8f5942;
+  border-radius: 1.2rem;
+  background: #3a2821;
+  box-shadow: 0 1.25rem 4rem rgba(0, 0, 0, 0.42), inset 0 0 0 2px #1b1310;
+}
+
+#game {
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 2px solid #1b1310;
+  border-radius: 0.55rem;
+  background: #f1d4ab;
+}
+
+#game canvas {
+  display: block;
+}
+
+.cabinet__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.35rem 0.05rem;
+  color: #c69d7e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(0.65rem, 1.8vw, 0.78rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  main {
+    width: min(100% - 1rem, 1080px);
+    padding-top: 1.5rem;
+  }
+
+  .cabinet__footer {
+    align-items: center;
+    flex-direction: column;
+  }
+}

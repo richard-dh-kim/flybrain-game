@@ -1,0 +1,12 @@
+[package]
+name = "flybrain-game-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Deterministic simulation core for FlyBrain Swatter"
+
+[lib]
+crate-type = ["rlib"]
+
+[lints]
+workspace = true

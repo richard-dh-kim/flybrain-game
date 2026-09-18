@@ -384,9 +384,11 @@ These are expansion paths, not MVP requirements.
 
 ## Immediate next work
 
-1. Record the confirmed RTX 4060 Ti 16 GB and complete the development toolchain.
-2. Review the upstream licenses and reproduce the bounded full-graph benchmark.
-3. Initialize the Rust/TypeScript/Python workspace.
-4. Prove one shared Rust movement step through native, WASM, and Python.
-5. Build the gray-box screen with a moving player, table, fly silhouette, and one articulated attacking foreleg.
+Active status and migration instructions are maintained in `CURRENT.md`.
+
+1. Move the canonical checkout to the WSL2 Ubuntu filesystem after WSL boot and GPU access are verified.
+2. Create the Python 3.12/PyTorch/CUDA environment and record exact locked dependencies.
+3. Review the upstream licenses and reproduce the bounded full-graph benchmark.
+4. Add the PyO3/maturin boundary and prove one shared Rust movement sequence through native, WASM, and Python.
+5. Build the next gray-box slice: shared mouse/keyboard movement and one articulated attacking foreleg with IK, collision, and a complete attack state machine.
 6. Add the simple predictive expert before producing final art or training the connectome.

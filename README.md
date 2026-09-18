@@ -1,5 +1,8 @@
 # FlyBrain Swatter
 
+> Continuing development? Start with [CURRENT.md](CURRENT.md) for the active
+> milestone, Ubuntu/WSL migration notes, verification steps, and next work.
+
 FlyBrain Swatter is a browser game in which a tiny winged human dodges the hands of a giant cartoon fruit fly. The long-term controller is a recurrent neural network constrained by the measured connectivity of the adult fruit-fly brain.
 
 The project is deliberately being built in layers:

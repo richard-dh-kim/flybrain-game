@@ -556,7 +556,7 @@ class GrayboxScene extends Phaser.Scene {
       ...handLines,
     ]);
 
-    if (this.policyMode === "learned") {
+    if (this.policyMode === "learned" || this.policyMode === "connectome") {
       this.drawBrainActivity();
     }
   }
@@ -564,14 +564,36 @@ class GrayboxScene extends Phaser.Scene {
   private drawBrainActivity(): void {
     const panelX = WIDTH - 166;
     const panelY = 56;
+    const connectome = this.policyMode === "connectome"
+      ? this.connectomePolicy.snapshot()
+      : null;
+    const panelHeight = connectome ? 194 : 154;
+    const dotStartY = connectome ? panelY + 92 : panelY + 52;
     this.brainActivityGraphics
       .fillStyle(0x181310, 0.78)
-      .fillRoundedRect(panelX, panelY, 150, 154, 8)
+      .fillRoundedRect(panelX, panelY, 150, panelHeight, 8)
       .lineStyle(1, 0xfff1cf, 0.35)
-      .strokeRoundedRect(panelX, panelY, 150, 154, 8);
-    this.brainActivityText.setVisible(true);
+      .strokeRoundedRect(panelX, panelY, 150, panelHeight, 8);
+    this.brainActivityText
+      .setText(connectome
+        ? [
+          "SAMPLED MALECNS ACTIVITY",
+          "64 of 165,122 neurons",
+          "16 sensory · 32 graph · 16 motor",
+          `brain step ${connectome.activityStep}`,
+        ]
+        : ["COMPUTED GRU ACTIVITY", "64 hidden units"])
+      .setVisible(true);
 
-    const activity = this.learnedPolicy.activity();
+    const activity = connectome
+      ? this.connectomePolicy.activity()
+      : this.learnedPolicy.activity();
+    if (connectome) {
+      this.brainActivityGraphics
+        .lineStyle(1, 0xfff1cf, 0.16)
+        .lineBetween(panelX + 14, dotStartY + 18, panelX + 136, dotStartY + 18)
+        .lineBetween(panelX + 14, dotStartY + 66, panelX + 136, dotStartY + 66);
+    }
     for (let index = 0; index < activity.length; index += 1) {
       const value = activity[index] ?? 0;
       const column = index % 8;
@@ -580,7 +602,7 @@ class GrayboxScene extends Phaser.Scene {
       const alpha = 0.18 + Math.min(1, Math.abs(value)) * 0.82;
       this.brainActivityGraphics
         .fillStyle(color, alpha)
-        .fillCircle(panelX + 22 + column * 16, panelY + 52 + row * 12, 4);
+        .fillCircle(panelX + 22 + column * 16, dotStartY + row * 12, 4);
     }
   }
 

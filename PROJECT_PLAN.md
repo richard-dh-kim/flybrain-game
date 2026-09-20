@@ -394,5 +394,5 @@ Active status and migration instructions are maintained in `CURRENT.md`.
 
 1. Add multiple seeds plus shuffled-topology and matched random-sparse controls before comparative claims.
 2. Collect human paths and DAgger-style examples from learned-policy failures.
-3. Playtest the on-demand full-connectome mode on hardware through a complete round, restart, mode switching, and fallback.
-4. Add sampled, synchronized MaleCNS activity to the browser visualization; numerical parity now passes.
+3. Recheck the on-demand full-connectome mode and sampled-activity overhead on hardware through a complete round, restart, mode switching, and fallback.
+4. Begin Phase 6 presentation work while preserving gameplay readability and honest visualization labels.

@@ -19,7 +19,12 @@ test("validated u16 package runs in a WebGPU worker", async ({ page }) => {
     packageSha256?: string;
     ticks?: number;
     inferenceMedianMs?: number;
-    finalDecision?: { targetX?: number; targetY?: number; strikeLogit?: number };
+    finalDecision?: {
+      targetX?: number;
+      targetY?: number;
+      strikeLogit?: number;
+      activity?: number[];
+    };
   };
   expect(result.packageSha256).toBe(
     "0f5baf90bf5bed5802931b289d551474524547872ceb3eff657e25d9d8e54a37",
@@ -29,6 +34,9 @@ test("validated u16 package runs in a WebGPU worker", async ({ page }) => {
   expect(result.finalDecision?.targetX).toBeCloseTo(0.3108477, 4);
   expect(result.finalDecision?.targetY).toBeCloseTo(0.5584587, 4);
   expect(result.finalDecision?.strikeLogit).toBeCloseTo(-1.1622446, 4);
+  expect(result.finalDecision?.activity).toHaveLength(64);
+  expect(result.finalDecision?.activity?.every(Number.isFinite)).toBe(true);
+  expect(result.finalDecision?.activity?.some((value) => Math.abs(value) > 1e-6)).toBe(true);
   console.log(`WebGPU benchmark: ${JSON.stringify(result)}`);
 });
 
@@ -55,6 +63,16 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   expect(snapshot?.connectome.status).toBe("ready");
   expect(snapshot?.connectome.completedSteps).toBeGreaterThan(0);
   expect(snapshot?.connectome.inferenceMedianMs).toBeGreaterThan(0);
+  await page.waitForFunction(
+    () => (window.__flybrainGame?.snapshot().connectome.activityStep ?? 0) > 0,
+  );
+  const activitySnapshot = await page.evaluate(() => window.__flybrainGame?.snapshot());
+  expect(activitySnapshot?.connectome.activitySampleCount).toBe(64);
+  await tapKey(page, "h");
+  await page.waitForFunction(() => window.__flybrainGame?.snapshot().debugEnabled === true);
+  if (process.env.FLYBRAIN_CONNECTOME_SCREENSHOT_PATH) {
+    await page.screenshot({ path: process.env.FLYBRAIN_CONNECTOME_SCREENSHOT_PATH });
+  }
   const initialTick = snapshot?.tick ?? 0;
   const initialPlayerX = snapshot?.playerX ?? 0;
   const canvas = page.locator("canvas");
@@ -100,12 +118,15 @@ declare global {
         policyMode: string;
         tick: number;
         playerX: number;
+        debugEnabled: boolean;
         simulationRateHz: number;
         connectome: {
           status: "idle" | "loading" | "ready" | "error";
           completedSteps: number;
           inferenceMedianMs: number | null;
           pendingSteps: number;
+          activitySampleCount: number;
+          activityStep: number;
         };
       };
     };

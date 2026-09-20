@@ -1,6 +1,15 @@
 const FORMAT_NAME = "flybrain-connectome-packed";
 const FORMAT_VERSION = 2;
 const EMPTY_SENSORY = 0xffff_ffff;
+const ACTIVITY_SAMPLES = {
+  sensory: 16,
+  graph: 32,
+  motor: 16,
+} as const;
+const ACTIVITY_SAMPLE_COUNT = (
+  ACTIVITY_SAMPLES.sensory + ACTIVITY_SAMPLES.graph + ACTIVITY_SAMPLES.motor
+);
+const OUTPUT_VALUE_COUNT = 3 + ACTIVITY_SAMPLE_COUNT;
 const BUFFER_USAGE = {
   MAP_READ: 0x0001,
   COPY_SRC: 0x0004,
@@ -54,6 +63,7 @@ export interface ConnectomeGpuDecision {
   strikeLogit: number;
   strikeProbability: number;
   strike: boolean;
+  activity: number[];
 }
 
 export interface ConnectomeGpuInfo {
@@ -64,6 +74,12 @@ export interface ConnectomeGpuInfo {
   neuronCount: number;
   edgeCount: number;
   adapter: string;
+  activitySamples: {
+    sensory: number;
+    graph: number;
+    motor: number;
+    total: number;
+  };
 }
 
 type ProgressCallback = (progress: ConnectomeGpuProgress) => void;
@@ -80,6 +96,8 @@ export class ConnectomeWebGpu {
   private readonly recurrenceBindGroups: readonly [GPUBindGroup, GPUBindGroup];
   private readonly readoutPipeline: GPUComputePipeline;
   private readonly readoutBindGroups: readonly [GPUBindGroup, GPUBindGroup];
+  private readonly activityPipeline: GPUComputePipeline;
+  private readonly activityBindGroups: readonly [GPUBindGroup, GPUBindGroup];
   private readonly outputBuffer: GPUBuffer;
   private readonly readbackBuffer: GPUBuffer;
   private readonly ownedBuffers: GPUBuffer[];
@@ -102,6 +120,10 @@ export class ConnectomeWebGpu {
       neuronCount: manifest.dimensions.neurons,
       edgeCount: manifest.dimensions.edges,
       adapter: adapterLabel,
+      activitySamples: {
+        ...ACTIVITY_SAMPLES,
+        total: ACTIVITY_SAMPLE_COUNT,
+      },
     };
 
     this.featureBuffer = emptyBuffer(
@@ -128,13 +150,13 @@ export class ConnectomeWebGpu {
     this.outputBuffer = emptyBuffer(
       device,
       "connectome output",
-      3 * Float32Array.BYTES_PER_ELEMENT,
+      OUTPUT_VALUE_COUNT * Float32Array.BYTES_PER_ELEMENT,
       BUFFER_USAGE.STORAGE | BUFFER_USAGE.COPY_SRC,
     );
     this.readbackBuffer = emptyBuffer(
       device,
       "connectome output readback",
-      3 * Float32Array.BYTES_PER_ELEMENT,
+      OUTPUT_VALUE_COUNT * Float32Array.BYTES_PER_ELEMENT,
       BUFFER_USAGE.COPY_DST | BUFFER_USAGE.MAP_READ,
     );
 
@@ -194,6 +216,35 @@ export class ConnectomeWebGpu {
         readoutLayout,
         this.stateBuffers[1],
         buffers,
+        this.outputBuffer,
+      ),
+    ];
+
+    this.activityPipeline = device.createComputePipeline({
+      label: "connectome activity sampler",
+      layout: "auto",
+      compute: {
+        module: device.createShaderModule({
+          label: "connectome activity sampler shader",
+          code: activitySamplerShader(ACTIVITY_SAMPLE_COUNT),
+        }),
+        entryPoint: "main",
+      },
+    });
+    const activityLayout = this.activityPipeline.getBindGroupLayout(0);
+    this.activityBindGroups = [
+      activityBindGroup(
+        device,
+        activityLayout,
+        this.stateBuffers[0],
+        buffers.activitySampleIndices,
+        this.outputBuffer,
+      ),
+      activityBindGroup(
+        device,
+        activityLayout,
+        this.stateBuffers[1],
+        buffers.activitySampleIndices,
         this.outputBuffer,
       ),
     ];
@@ -282,7 +333,16 @@ export class ConnectomeWebGpu {
     );
     readoutPass.dispatchWorkgroups(3);
     readoutPass.end();
-    encoder.copyBufferToBuffer(this.outputBuffer, 0, this.readbackBuffer, 0, 12);
+    const activityPass = encoder.beginComputePass({ label: "connectome activity sample pass" });
+    activityPass.setPipeline(this.activityPipeline);
+    activityPass.setBindGroup(
+      0,
+      required(this.activityBindGroups[nextStateIndex], "activity bind group"),
+    );
+    activityPass.dispatchWorkgroups(1);
+    activityPass.end();
+    const outputBytes = OUTPUT_VALUE_COUNT * Float32Array.BYTES_PER_ELEMENT;
+    encoder.copyBufferToBuffer(this.outputBuffer, 0, this.readbackBuffer, 0, outputBytes);
     this.device.queue.submit([encoder.finish()]);
     await this.readbackBuffer.mapAsync(MAP_READ);
     const raw = new Float32Array(this.readbackBuffer.getMappedRange()).slice();
@@ -298,6 +358,7 @@ export class ConnectomeWebGpu {
       strikeLogit,
       strikeProbability,
       strike: strikeProbability >= this.strikeThreshold,
+      activity: Array.from(raw.subarray(3)),
     };
   }
 
@@ -322,6 +383,7 @@ interface ModelBuffers {
   weights: GPUBuffer;
   neuronMeta: GPUBuffer;
   motorIndices: GPUBuffer;
+  activitySampleIndices: GPUBuffer;
   readoutWeight: GPUBuffer;
   readoutBias: GPUBuffer;
   owned: GPUBuffer[];
@@ -389,10 +451,23 @@ async function loadModelBuffers(
     metadataBytes,
     BUFFER_USAGE.STORAGE,
   );
+  const motorIndexBytes = await loader.bytes("motor_indices");
+  const motorIndexValues = new Uint32Array(motorIndexBytes);
   const motorIndices = bufferFromBytes(
     device,
     "connectome motor indices",
-    await loader.bytes("motor_indices"),
+    motorIndexBytes,
+    BUFFER_USAGE.STORAGE,
+  );
+  const activitySampleValues = activitySampleIndices(
+    sensoryIndices,
+    motorIndexValues,
+    neuronCount,
+  );
+  const activitySampleIndicesBuffer = bufferFromBytes(
+    device,
+    "connectome activity sample indices",
+    activitySampleValues.buffer as ArrayBuffer,
     BUFFER_USAGE.STORAGE,
   );
   const readoutWeight = bufferFromBytes(
@@ -413,6 +488,7 @@ async function loadModelBuffers(
     weights,
     neuronMeta,
     motorIndices,
+    activitySampleIndicesBuffer,
     readoutWeight,
     readoutBias,
   ];
@@ -422,6 +498,7 @@ async function loadModelBuffers(
     weights,
     neuronMeta,
     motorIndices,
+    activitySampleIndices: activitySampleIndicesBuffer,
     readoutWeight,
     readoutBias,
     owned,
@@ -509,6 +586,24 @@ function readoutBindGroup(
   });
 }
 
+function activityBindGroup(
+  device: GPUDevice,
+  layout: GPUBindGroupLayout,
+  state: GPUBuffer,
+  sampleIndices: GPUBuffer,
+  output: GPUBuffer,
+): GPUBindGroup {
+  return device.createBindGroup({
+    label: "connectome activity sample bindings",
+    layout,
+    entries: [
+      { binding: 0, resource: { buffer: state } },
+      { binding: 1, resource: { buffer: sampleIndices } },
+      { binding: 2, resource: { buffer: output } },
+    ],
+  });
+}
+
 function recurrenceShader(neuronCount: number): string {
   return `
 struct NeuronMeta {
@@ -576,6 +671,68 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   output[channel] = select(1.0 / (1.0 + exp(-value)), value, channel == 2u);
 }
 `;
+}
+
+function activitySamplerShader(sampleCount: number): string {
+  return `
+@group(0) @binding(0) var<storage, read> state: array<f32>;
+@group(0) @binding(1) var<storage, read> sample_indices: array<u32>;
+@group(0) @binding(2) var<storage, read_write> output: array<f32>;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+  let sample = id.x;
+  if (sample >= ${sampleCount}u) {
+    return;
+  }
+  output[3u + sample] = state[sample_indices[sample]];
+}
+`;
+}
+
+function activitySampleIndices(
+  sensoryIndices: Uint32Array,
+  motorIndices: Uint32Array,
+  neuronCount: number,
+): Uint32Array {
+  const result = new Uint32Array(ACTIVITY_SAMPLE_COUNT);
+  result.set(evenlySpacedValues(sensoryIndices, ACTIVITY_SAMPLES.sensory), 0);
+  result.set(
+    evenlySpacedRange(neuronCount, ACTIVITY_SAMPLES.graph),
+    ACTIVITY_SAMPLES.sensory,
+  );
+  result.set(
+    evenlySpacedValues(motorIndices, ACTIVITY_SAMPLES.motor),
+    ACTIVITY_SAMPLES.sensory + ACTIVITY_SAMPLES.graph,
+  );
+  return result;
+}
+
+function evenlySpacedValues(values: Uint32Array, count: number): Uint32Array {
+  if (values.length === 0) {
+    throw new Error("cannot sample an empty neuron population");
+  }
+  const result = new Uint32Array(count);
+  for (let index = 0; index < count; index += 1) {
+    const source = count === 1
+      ? 0
+      : Math.round((index * (values.length - 1)) / (count - 1));
+    result[index] = required(values[source], "activity sample index");
+  }
+  return result;
+}
+
+function evenlySpacedRange(length: number, count: number): Uint32Array {
+  if (length <= 0) {
+    throw new Error("cannot sample an empty neuron range");
+  }
+  const result = new Uint32Array(count);
+  for (let index = 0; index < count; index += 1) {
+    result[index] = count === 1
+      ? 0
+      : Math.round((index * (length - 1)) / (count - 1));
+  }
+  return result;
 }
 
 function bufferFromBytes(

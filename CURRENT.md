@@ -150,6 +150,12 @@ Completed:
   reports brain median/p95 time, end-to-end p95, queue depth, simulation rate,
   and render rate. The `H` overlay labels the green mouse destination separately
   from the yellow hand target.
+- With mode `5` active, the `H` panel now displays 64 real values sampled from
+  the same GPU-resident recurrent state that produced the current hand action:
+  16 sensory neurons, 32 evenly spaced whole-graph neurons, and 16 motor
+  neurons. The panel shows its brain-step number and explicitly says that these
+  are 64 samples from 165,122 neurons. Mode `4` retains its separate 64-unit GRU
+  display.
 - Rust formatting, Clippy, workspace tests, Python replay test, WASM replay
   test, policy comparison, browser automation, TypeScript checking, and the
   production browser build pass in WSL2.
@@ -215,8 +221,8 @@ Continue validation while advancing the Phase 5 runtime work:
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.
-3. Playtest mode `5` in the normal hardware browser, including a full round,
-   restart, switching between modes `4` and `5`, and an intentionally missing
-   model to confirm the visible GRU fallback.
-4. Expose synchronized sampled MaleCNS activity to the existing `H` panel; the
-   browser parity and hardware latency gates are now passed.
+3. Recheck mode `5` hardware timing with the 64-neuron activity sampler enabled,
+   including a full round, restart, switching between modes `4` and `5`, and an
+   intentionally missing model to confirm the visible GRU fallback.
+4. Begin Phase 6 presentation work after the visualization timing check, while
+   keeping hitboxes, telegraphs, and the sampled-activity label readable.

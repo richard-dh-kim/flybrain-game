@@ -26,6 +26,8 @@ export interface ConnectomePolicySnapshot {
   inferenceMedianMs: number | null;
   inferenceP95Ms: number | null;
   roundTripP95Ms: number | null;
+  activitySampleCount: number;
+  activityStep: number;
 }
 
 type WorkerResponse =
@@ -49,6 +51,9 @@ export class ConnectomePolicy {
   private error: string | null = null;
   private pendingRequests = new Map<number, { epoch: number; started: number }>();
   private latestDecision: ConnectomeGpuDecision | null = null;
+  private latestDecisionStep = 0;
+  private displayedActivity: number[] = [];
+  private displayedActivityStep = 0;
   private requestId = 0;
   private epoch = 0;
   private completedSteps = 0;
@@ -85,6 +90,9 @@ export class ConnectomePolicy {
     this.epoch += 1;
     this.pendingRequests.clear();
     this.latestDecision = null;
+    this.latestDecisionStep = 0;
+    this.displayedActivity = [];
+    this.displayedActivityStep = 0;
     this.completedSteps = 0;
     this.inferenceDurations = [];
     this.roundTripDurations = [];
@@ -117,7 +125,13 @@ export class ConnectomePolicy {
     }
     const decision = this.latestDecision;
     this.latestDecision = null;
+    this.displayedActivity = decision.activity;
+    this.displayedActivityStep = this.latestDecisionStep;
     return actionFromNormalizedDecision(simulation, decision);
+  }
+
+  activity(): ArrayLike<number> {
+    return this.displayedActivity;
   }
 
   snapshot(): ConnectomePolicySnapshot {
@@ -132,6 +146,8 @@ export class ConnectomePolicy {
       inferenceMedianMs: percentile(this.inferenceDurations, 50),
       inferenceP95Ms: percentile(this.inferenceDurations, 95),
       roundTripP95Ms: percentile(this.roundTripDurations, 95),
+      activitySampleCount: this.displayedActivity.length,
+      activityStep: this.displayedActivityStep,
     };
   }
 
@@ -156,6 +172,7 @@ export class ConnectomePolicy {
       this.pendingRequests.delete(message.requestId);
       this.latestDecision = message.decision;
       this.completedSteps += 1;
+      this.latestDecisionStep = this.completedSteps;
       recordTiming(this.inferenceDurations, message.inferenceMs);
       recordTiming(this.roundTripDurations, performance.now() - pending.started);
     } else if (message.type === "error") {
@@ -168,6 +185,9 @@ export class ConnectomePolicy {
     this.error = message;
     this.pendingRequests.clear();
     this.latestDecision = null;
+    this.latestDecisionStep = 0;
+    this.displayedActivity = [];
+    this.displayedActivityStep = 0;
     this.worker?.terminate();
     this.worker = undefined;
   }

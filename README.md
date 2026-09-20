@@ -54,8 +54,9 @@ three scripted policy modes on keys 1–3, and the frozen learned GRU on key `4`
 Run `npm run prepare:connectome-web` once when the ignored model assets are
 absent, then press `5` to load the full connectome through WebGPU. The status
 line shows loading, backend, adapter, model version, and fallback errors. Press
-`H` for velocity, target, collision, phase, cooldown, and real GRU hidden
-activity. Press `E` to export the current round's pointer path as a CSV for
+`H` for velocity, target, collision, phase, cooldown, real GRU hidden activity
+in mode `4`, and 64 labeled samples from the 165,122-neuron MaleCNS state in
+mode `5`. Press `E` to export the current round's pointer path as a CSV for
 evaluation. Mode `5` needs a compatible dedicated or integrated GPU with
 WebGPU; an RTX card is not required. Mode `4` remains the lightweight CPU
 fallback for unsupported devices. In the `H` overlay, the green marker is the

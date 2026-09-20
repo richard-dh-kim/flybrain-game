@@ -13,6 +13,8 @@ interface BrowserSnapshot {
   connectome: {
     status: "idle" | "loading" | "ready" | "error";
     completedSteps: number;
+    activitySampleCount: number;
+    activityStep: number;
   };
 }
 

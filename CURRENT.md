@@ -1,6 +1,6 @@
 # Current Project Status
 
-Last updated: 2026-09-20
+Last updated: 2026-09-21
 
 This is the first file a new Codex session should read. Then read
 `PROJECT_PLAN.md` and the active architecture decisions in `docs/decisions/`.
@@ -187,12 +187,14 @@ default; the 19,203-parameter conventional GRU covers loading and unsupported
 devices. This is still a one-seed model, and the ignored 148 MiB local model
 assets must be prepared before the full brain can load from a fresh checkout.
 
-The first seed-matched topology controls are also complete. All three conditions
-hit 33/33 validation paths, but measured MaleCNS was much more efficient than a
-degree-matched presynaptic shuffle while random sparse was slightly more
-efficient than measured. Seed 1701 therefore shows that wiring matters but does
-not show biological-topology superiority. Exact results and hashes are in
-`docs/experiments/phase-4-topology-controls.md` and its compact metrics JSON.
+Two of three predeclared seed-matched topology comparisons are complete. At
+both seeds, measured MaleCNS beat the degree-matched presynaptic shuffle on
+offline error and closed-loop efficiency. At seed 3407, measured hit 33/33
+validation paths, shuffled hit 29/33, and random sparse hit 33/33. Random sparse
+again matched or beat measured on the main metrics, so the current evidence
+shows that wiring matters but does not show biological-topology superiority.
+Exact results and hashes are in `docs/experiments/phase-4-topology-controls.md`
+and its compact metrics JSON.
 
 ## Local environment note
 
@@ -243,8 +245,8 @@ browser through `localhost`.
 
 Continue model validation alongside Phase 6 presentation work:
 
-1. Repeat the measured, shuffled-presynaptic, and random-sparse conditions
-   at the predeclared seeds 3407 and 99017 before estimating a topology effect
+1. Complete the measured, shuffled-presynaptic, and random-sparse conditions
+   at the remaining predeclared seed 99017 before estimating a topology effect
    or making a biological-topology comparison.
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings

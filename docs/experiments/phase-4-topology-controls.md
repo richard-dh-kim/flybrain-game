@@ -1,7 +1,7 @@
 # Phase 4 MaleCNS topology controls
 
 Date: 2026-09-21
-Status: seed-1701 measured, shuffled, and random-sparse comparison complete
+Status: seeds 1701 and 3407 complete; predeclared seed 99017 remains
 
 ## Question
 
@@ -45,7 +45,7 @@ This seed-matched result can reveal a useful difference, but it still cannot
 support a broad claim about biological topology. The full comparison needs the
 same three conditions repeated across additional predeclared seeds.
 
-## Results
+## Seed 1701 results
 
 All three conditions completed the same 1,800 optimizer steps and processed the
 same 28,480 training rows. Lower pixel error, hit ticks, and misses are better.
@@ -68,14 +68,42 @@ matched random sparsity. Differences between measured and random are small in
 closed loop and could reverse with another initialization. At least several
 predeclared seeds are required before estimating a topology effect.
 
-The next replication seeds are fixed now, before those runs, as 3407 and 99017.
-Each replicate will use the same value for its interface and topology seed in
-all three conditions. Together with 1701, this creates an initial three-seed
+The next replication seeds were fixed before those runs as 3407 and 99017.
+Each replicate uses the same value for its interface and topology seed in all
+three conditions. Together with 1701, this creates an initial three-seed
 comparison; more seeds will be required if its variance remains large.
 
 The recurrent state remained important offline. Resetting state every tick
 raised target RMSE to 175.13 px for measured, 163.46 px for shuffled, and
 174.72 px for random sparse.
+
+## Seed 3407 results
+
+All three conditions again completed the same 1,800 optimizer steps, this time
+processing 28,483 rows per condition. The six threshold candidates and their
+selection order were fixed before the runs. The selected threshold was then
+used once on the separate 33-path validation suite.
+
+| Condition | Offline target RMSE | Sweep hits | Validation hits | Mean hit tick | Slaps | Misses |
+|---|---:|---:|---:|---:|---:|---:|
+| Measured MaleCNS | 50.45 px | 12/12 at 0.50 | 33/33 | 110.06 | 59 | 26 |
+| Shuffled presynaptic | 84.31 px | 8/12 at 0.20 | 29/33 | 131.79 | 107 | 74 |
+| Random sparse | 44.54 px | 12/12 at 0.35 | 33/33 | 92.79 | 60 | 27 |
+
+Measured wiring again beat the tightly degree-matched shuffle: it had 40%
+lower offline target error, four more validation hits, faster successful hits,
+and far fewer failed slaps. Random sparse again had the lowest offline error.
+It tied measured at 33 validation hits and caught successful paths faster,
+although it used one additional slap and recorded one additional miss.
+
+Across the first two predeclared seeds, measured wiring consistently beats the
+tightly matched presynaptic shuffle, so neuron-to-neuron organization matters
+for this training setup. Random sparse matches or beats measured, however, so
+these results still do not show that the measured biological topology is
+superior. Seed 99017 remains required to finish the predeclared comparison.
+
+Resetting recurrent state at seed 3407 raised target RMSE to 168.18 px for
+measured, 166.66 px for shuffled, and 183.69 px for random sparse.
 
 ## Smoke evidence
 

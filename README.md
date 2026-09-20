@@ -67,9 +67,11 @@ samples from its 165,122-neuron state. The brain shape is anatomical, while the
 sample positions and faint links are illustrative. Press `H` to show technical
 timing, velocity, targets, collision shapes, phases, and cooldowns. Debug mode
 also enables scripted controller keys `1` through `3` and `E` trajectory
-export. During development, `4` selects the compact GRU and `5` selects the
-full MaleCNS controller directly so their behavior and activity labels can be
-compared. The green debug marker is the mouse destination and the yellow marker
+export. During development, `4` selects the CPU-only compact GRU and `5`
+selects the full MaleCNS controller directly so their behavior and activity
+labels can be compared. Automatic CPU fallback covers browsers without a
+usable WebGPU adapter as well as model loading, verification, or inference
+failures. The green debug marker is the mouse destination and the yellow marker
 is the hand target.
 
 Run the automated gameplay gates with:

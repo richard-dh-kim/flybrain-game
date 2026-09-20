@@ -165,10 +165,11 @@ Completed:
   full MaleCNS controller even when debug details are hidden.
 - The activity display makes the active source explicit. Full mode uses a green
   `FULL MALECNS · LIVE` badge and sensory/network/motor labels. Loading says the
-  compact brain is controlling the hands; fallback uses a
-  `COMPACT BRAIN · FALLBACK` badge. Both compact states label all lights as 64
-  GRU units and explain that they are hidden-state values rather than
-  anatomical neuron samples.
+  CPU-only compact GRU is controlling the hands; automatic fallback uses a
+  `COMPACT GRU · CPU FALLBACK` badge, while manual mode `4` says
+  `COMPACT GRU · CPU ONLY`. Both compact states label all lights as 64 GRU units
+  and explain that they are hidden-state values rather than anatomical neuron
+  samples.
 - The first Phase 6 readability pass animates the fly independently of the
   authoritative simulation: its pupils follow the player, lock onto a committed
   target, and its head and expression anticipate the slap. A shrinking target,

@@ -141,17 +141,17 @@ function presentationForState(state: BrainVisualizationState): {
     const percent = state.loadPercent === undefined ? "" : ` · ${state.loadPercent}%`;
     return {
       badge: `LOADING FULL BRAIN${percent}`,
-      status: "The compact brain controls the hands while MaleCNS loads",
+      status: "The CPU-only compact GRU controls the hands while MaleCNS loads",
     };
   }
   if (state.mode === "fallback") {
     return {
       badge: state.fallbackReason
-        ? "COMPACT BRAIN · FALLBACK"
-        : "COMPACT GRU · MODE 4",
+        ? "COMPACT GRU · CPU FALLBACK"
+        : "COMPACT GRU · CPU ONLY",
       status: state.fallbackReason
         ? `Full brain unavailable · ${state.fallbackReason}`
-        : "64 live units from the compact recurrent controller",
+        : "64 live units from the CPU-only compact recurrent controller",
     };
   }
   return {

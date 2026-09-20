@@ -215,7 +215,7 @@ class GrayboxScene extends Phaser.Scene {
       .setVisible(false);
 
     this.add
-      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  4 COMPACT / 5 FULL  ·  R RESTART  ·  H DETAILS", {
+      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  4 CPU / 5 FULL  ·  R RESTART  ·  H DETAILS", {
         color: "#d9b98d",
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
         fontSize: "11px",
@@ -278,7 +278,7 @@ class GrayboxScene extends Phaser.Scene {
       this.automaticFallback = true;
       this.learnedPolicy.reset();
       this.connectomeAction = null;
-      this.brainText.setText("FLY BRAIN: COMPACT FALLBACK");
+      this.brainText.setText("FLY BRAIN: CPU FALLBACK");
     }
     this.syncConnectomeUi();
 
@@ -371,7 +371,7 @@ class GrayboxScene extends Phaser.Scene {
         : mode === "predictive"
           ? "DEV · PREDICTIVE [3]"
           : mode === "learned"
-            ? "COMPACT GRU [4]"
+            ? "COMPACT GRU · CPU ONLY [4]"
             : "FULL MALECNS · LOADING [5]";
     this.brainText.setText(`FLY BRAIN: ${label}`);
     this.syncConnectomeUi();

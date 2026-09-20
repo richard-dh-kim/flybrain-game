@@ -33,7 +33,7 @@ test("loads, follows the pointer, and switches policy modes", async ({ page }) =
   await tapGameKey(page, "4");
   await expect.poll(async () => (await snapshot(page)).policyMode).toBe("learned");
   await expect(page.locator("#brain-controller-badge")).toHaveText(
-    "COMPACT GRU · MODE 4",
+    "COMPACT GRU · CPU ONLY",
   );
   await expect(page.locator("#brain-region-sensory")).toBeHidden();
   await expect(page.locator("#brain-region-network")).toHaveText("64 GRU units");

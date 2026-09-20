@@ -15,7 +15,8 @@ validated u16 package preserves the live result, WebGPU passes software-adapter 
 and a real RTX browser run passes the 60 Hz gate at 5.0 ms median / 6.9 ms p95.
 The full controller is now the browser default, with a GRU covering its load
 and unsupported devices. Phase 6 has started with an always-visible, honestly
-labeled fly-brain activity display outside the playfield.
+labeled fly-brain activity display outside the playfield and a first pass on
+gaze, wind-up, strike, hit, and miss readability.
 
 This document records the current product direction. Where it conflicts with `PROJECT_HANDOFF.md`, this document takes precedence.
 

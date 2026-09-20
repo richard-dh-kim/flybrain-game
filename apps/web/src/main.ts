@@ -20,18 +20,29 @@ const UNITS_PER_PIXEL = 1_024;
 const ROUND_ACTIVE = 0;
 const ROUND_HIT = 1;
 const ROUND_SURVIVED = 2;
+const HAND_PHASE_TRACK = 0;
+const HAND_PHASE_WIND_UP = 1;
+const HAND_PHASE_STRIKE = 2;
+const HAND_PHASE_IMPACT = 3;
+const HAND_PHASE_RECOVER = 4;
+const HAND_WIND_UP_TICKS = 12;
+const HAND_STRIKE_TICKS = 14;
+const IMPACT_EFFECT_MS = 360;
+const REACTION_TEXT_MS = 620;
 const HAND_PHASE_NAMES = ["track", "wind-up", "strike", "impact", "recover"] as const;
 type PolicyMode = ScriptedPolicyMode | "learned" | "connectome";
 
 interface BrowserSnapshot {
   tick: number;
   roundStatus: number;
+  handPhase: number;
   playerX: number;
   playerY: number;
   policyMode: PolicyMode;
   pointerActive: boolean;
   debugEnabled: boolean;
   debugPanelVisible: boolean;
+  reactionText: string | null;
   simulationRateHz: number;
   renderRateFps: number;
   connectome: ConnectomePolicySnapshot;
@@ -54,7 +65,13 @@ declare global {
 
 class GrayboxScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
+  private flyHead!: Phaser.GameObjects.Container;
+  private flyWings!: Phaser.GameObjects.Graphics;
+  private flyExpression!: Phaser.GameObjects.Graphics;
   private hands!: Phaser.GameObjects.Graphics;
+  private telegraphGraphics!: Phaser.GameObjects.Graphics;
+  private effectsGraphics!: Phaser.GameObjects.Graphics;
+  private reactionText!: Phaser.GameObjects.Text;
   private debugGraphics!: Phaser.GameObjects.Graphics;
   private simulation!: Simulation;
   private restartKey!: Phaser.Input.Keyboard.Key;
@@ -84,16 +101,40 @@ class GrayboxScene extends Phaser.Scene {
   private simulationRateHz = 0;
   private rateSampleStarted = performance.now();
   private rateSampleTick = 0;
+  private presentationTimeMs = 0;
+  private previousHandPhase = HAND_PHASE_TRACK;
+  private previousRoundStatus = ROUND_ACTIVE;
+  private impactEffectRemainingMs = 0;
+  private missReactionRemainingMs = 0;
+  private hitReactionRemainingMs = 0;
+  private reactionTextRemainingMs = 0;
+  private reactionTextOriginY = 0;
+  private attackTarget = new Phaser.Math.Vector2(WIDTH / 2, HEIGHT / 2);
+  private effectTarget = new Phaser.Math.Vector2(WIDTH / 2, HEIGHT / 2);
 
   create(): void {
     this.cameras.main.setBackgroundColor("#dca982");
     this.drawRoom();
     this.drawFly();
     this.simulation = new Simulation();
+    this.telegraphGraphics = this.add.graphics().setDepth(7);
     this.hands = this.add.graphics().setDepth(8);
+    this.effectsGraphics = this.add.graphics().setDepth(18);
     this.debugGraphics = this.add.graphics().setDepth(19);
     this.drawHands();
     this.player = this.createPlayer(this.simulation.player_x, this.simulation.player_y);
+    this.reactionText = this.add
+      .text(WIDTH / 2, HEIGHT / 2, "", {
+        color: "#fff1cf",
+        fontFamily: "Georgia, serif",
+        fontSize: "30px",
+        fontStyle: "bold italic",
+        stroke: "#38251f",
+        strokeThickness: 7,
+      })
+      .setOrigin(0.5)
+      .setDepth(31)
+      .setVisible(false);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) {
@@ -206,6 +247,7 @@ class GrayboxScene extends Phaser.Scene {
       this.resetRateSample();
       this.humanTrajectory = [];
       this.statusText.setText("");
+      this.resetPresentation();
     }
     if (Phaser.Input.Keyboard.JustDown(this.debugKey)) {
       this.debugEnabled = !this.debugEnabled;
@@ -292,7 +334,11 @@ class GrayboxScene extends Phaser.Scene {
     this.player.x = this.simulation.player_x;
     this.player.y = this.simulation.player_y;
     this.player.rotation = Phaser.Math.Clamp((this.player.x - previousX) / 24, -0.18, 0.18);
+    this.updatePresentation(delta);
+    this.drawFlyExpression();
+    this.drawSlapTelegraph();
     this.drawHands();
+    this.drawPresentationEffects();
     this.drawDebugOverlay();
     this.syncBrainVisualization();
     this.timerText.setText((this.simulation.round_remaining_ticks / 60).toFixed(1));
@@ -332,12 +378,14 @@ class GrayboxScene extends Phaser.Scene {
     return {
       tick: this.simulation.tick,
       roundStatus: this.simulation.round_status,
+      handPhase: this.simulation.hand_phase(0),
       playerX: this.simulation.player_x,
       playerY: this.simulation.player_y,
       policyMode: this.policyMode,
       pointerActive: this.pointerActive,
       debugEnabled: this.debugEnabled,
       debugPanelVisible: this.debugText.visible,
+      reactionText: this.reactionText.visible ? this.reactionText.text : null,
       simulationRateHz: this.simulationRateHz,
       renderRateFps: this.game.loop.actualFps,
       connectome: this.connectomePolicy.snapshot(),
@@ -459,31 +507,328 @@ class GrayboxScene extends Phaser.Scene {
   }
 
   private drawFly(): void {
-    const body = this.add.graphics();
-    body.fillStyle(0x799e91, 0.56).fillEllipse(300, 260, 300, 380);
-    body.fillStyle(0x799e91, 0.56).fillEllipse(660, 260, 300, 380);
-    body.lineStyle(7, 0x405a53, 0.55).strokeEllipse(300, 260, 300, 380);
-    body.strokeEllipse(660, 260, 300, 380);
-    body.fillStyle(0x4b4036).fillEllipse(WIDTH / 2, 265, 410, 410);
-    body.lineStyle(10, 0x2d2521).strokeEllipse(WIDTH / 2, 265, 410, 410);
+    this.flyWings = this.add.graphics().setDepth(1);
+    this.flyWings.fillStyle(0x799e91, 0.56).fillEllipse(300, 260, 300, 380);
+    this.flyWings.fillStyle(0x799e91, 0.56).fillEllipse(660, 260, 300, 380);
+    this.flyWings.lineStyle(7, 0x405a53, 0.55).strokeEllipse(300, 260, 300, 380);
+    this.flyWings.strokeEllipse(660, 260, 300, 380);
 
-    body.fillStyle(0xb13b34).fillCircle(390, 220, 108);
-    body.fillCircle(570, 220, 108);
-    body.lineStyle(9, 0x38251f).strokeCircle(390, 220, 108);
-    body.strokeCircle(570, 220, 108);
-    body.lineStyle(2, 0xf2a46f, 0.55);
+    const face = this.add.graphics();
+    face.fillStyle(0x4b4036).fillEllipse(0, 0, 410, 410);
+    face.lineStyle(10, 0x2d2521).strokeEllipse(0, 0, 410, 410);
+    face.fillStyle(0xb13b34).fillCircle(-90, -45, 108);
+    face.fillCircle(90, -45, 108);
+    face.lineStyle(9, 0x38251f).strokeCircle(-90, -45, 108);
+    face.strokeCircle(90, -45, 108);
+    face.lineStyle(2, 0xf2a46f, 0.55);
     for (let offset = -66; offset <= 66; offset += 22) {
-      body.lineBetween(324, 220 + offset, 456, 220 + offset);
-      body.lineBetween(504, 220 + offset, 636, 220 + offset);
+      face.lineBetween(-156, -45 + offset, -24, -45 + offset);
+      face.lineBetween(24, -45 + offset, 156, -45 + offset);
+    }
+    this.flyExpression = this.add.graphics();
+    this.flyHead = this.add
+      .container(WIDTH / 2, 265, [face, this.flyExpression])
+      .setDepth(2);
+  }
+
+  private updatePresentation(delta: number): void {
+    const elapsed = Math.min(delta, 50);
+    this.presentationTimeMs += elapsed;
+    const phase = this.simulation.hand_phase(0);
+    const roundStatus = this.simulation.round_status;
+
+    if (phase === HAND_PHASE_WIND_UP && this.previousHandPhase !== HAND_PHASE_WIND_UP) {
+      this.attackTarget.set(
+        Phaser.Math.Clamp(
+          this.latestAction.targetXUnits / UNITS_PER_PIXEL,
+          32,
+          WIDTH - 32,
+        ),
+        Phaser.Math.Clamp(
+          this.latestAction.targetYUnits / UNITS_PER_PIXEL,
+          32,
+          TABLE_TOP - 32,
+        ),
+      );
     }
 
-    body
-      .lineStyle(10, 0x2d2521)
-      .beginPath()
-      .moveTo(430, 355)
-      .lineTo(480, 380)
-      .lineTo(530, 355)
-      .strokePath();
+    const enteredMissPresentation = (
+      phase === HAND_PHASE_IMPACT
+      && this.previousHandPhase !== HAND_PHASE_IMPACT
+    ) || (
+      phase === HAND_PHASE_RECOVER
+      && this.previousHandPhase !== HAND_PHASE_RECOVER
+      && this.missReactionRemainingMs <= 0
+    );
+    if (roundStatus === ROUND_ACTIVE && enteredMissPresentation) {
+      this.effectTarget.copy(this.attackTarget);
+      this.impactEffectRemainingMs = IMPACT_EFFECT_MS;
+      this.missReactionRemainingMs = 820;
+      this.showReaction("MISS!", "#67d5ff", this.attackTarget.x, this.attackTarget.y - 32);
+    }
+
+    if (roundStatus === ROUND_HIT && this.previousRoundStatus !== ROUND_HIT) {
+      this.effectTarget.set(this.simulation.player_x, this.simulation.player_y);
+      this.impactEffectRemainingMs = IMPACT_EFFECT_MS;
+      this.hitReactionRemainingMs = 900;
+      this.showReaction(
+        "SMACK!",
+        "#ffcf6b",
+        this.simulation.player_x,
+        Math.max(88, this.simulation.player_y - 108),
+      );
+    } else if (
+      roundStatus === ROUND_SURVIVED
+      && this.previousRoundStatus !== ROUND_SURVIVED
+    ) {
+      this.missReactionRemainingMs = 900;
+      this.showReaction(
+        "ESCAPED!",
+        "#95f4b5",
+        this.simulation.player_x,
+        Math.max(88, this.simulation.player_y - 108),
+      );
+    }
+
+    this.impactEffectRemainingMs = Math.max(0, this.impactEffectRemainingMs - elapsed);
+    this.missReactionRemainingMs = Math.max(0, this.missReactionRemainingMs - elapsed);
+    this.hitReactionRemainingMs = Math.max(0, this.hitReactionRemainingMs - elapsed);
+    this.reactionTextRemainingMs = Math.max(0, this.reactionTextRemainingMs - elapsed);
+    this.previousHandPhase = phase;
+    this.previousRoundStatus = roundStatus;
+
+    let headX = WIDTH / 2;
+    let headY = 265 + Math.sin(this.presentationTimeMs * 0.0024) * 1.5;
+    let headScale = 1;
+    let headRotation = Math.sin(this.presentationTimeMs * 0.0017) * 0.004;
+    if (phase === HAND_PHASE_WIND_UP) {
+      const progress = Phaser.Math.Clamp(
+        this.simulation.hand_phase_tick(0) / HAND_WIND_UP_TICKS,
+        0,
+        1,
+      );
+      headX += (this.attackTarget.x - WIDTH / 2) * 0.025 * progress;
+      headY += (this.attackTarget.y - 265) * 0.018 * progress;
+      headScale += progress * 0.025;
+    } else if (phase === HAND_PHASE_STRIKE) {
+      const progress = Phaser.Math.Clamp(
+        this.simulation.hand_phase_tick(0) / HAND_STRIKE_TICKS,
+        0,
+        1,
+      );
+      headScale += 0.025 + Math.sin(progress * Math.PI) * 0.018;
+      headY += 3;
+    }
+    if (this.missReactionRemainingMs > 0) {
+      const strength = this.missReactionRemainingMs / 820;
+      headX += Math.sin(this.presentationTimeMs * 0.07) * 5 * strength;
+      headRotation += Math.sin(this.presentationTimeMs * 0.052) * 0.025 * strength;
+    }
+    if (this.hitReactionRemainingMs > 0) {
+      headScale += 0.018 * (this.hitReactionRemainingMs / 900);
+    }
+    this.flyHead
+      .setPosition(headX, headY)
+      .setScale(headScale)
+      .setRotation(headRotation);
+    this.flyWings.setAlpha(0.91 + Math.sin(this.presentationTimeMs * 0.008) * 0.06);
+
+    if (this.hitReactionRemainingMs > 0) {
+      const impulse = Phaser.Math.Clamp(this.hitReactionRemainingMs / 900, 0, 1);
+      this.player.setScale(1 + impulse * 0.32, 1 - impulse * 0.22);
+    } else {
+      this.player.setScale(1);
+    }
+
+    if (this.reactionTextRemainingMs > 0) {
+      const progress = 1 - this.reactionTextRemainingMs / REACTION_TEXT_MS;
+      this.reactionText
+        .setVisible(true)
+        .setY(this.reactionTextOriginY - progress * 30)
+        .setAlpha(Math.min(1, this.reactionTextRemainingMs / 180))
+        .setScale(1 + progress * 0.18);
+    } else {
+      this.reactionText.setVisible(false);
+    }
+  }
+
+  private drawFlyExpression(): void {
+    this.flyExpression.clear();
+    const phase = this.simulation.hand_phase(0);
+    const useAttackTarget = (
+      phase === HAND_PHASE_WIND_UP
+      || phase === HAND_PHASE_STRIKE
+      || phase === HAND_PHASE_IMPACT
+    );
+    const gazeTargetX = useAttackTarget ? this.attackTarget.x : this.simulation.player_x;
+    const gazeTargetY = useAttackTarget ? this.attackTarget.y : this.simulation.player_y;
+    const gazeX = Phaser.Math.Clamp((gazeTargetX - WIDTH / 2) / 260, -1, 1) * 22;
+    const gazeY = Phaser.Math.Clamp((gazeTargetY - 220) / 210, -1, 1) * 18;
+
+    this.flyExpression.fillStyle(0x2d2521);
+    this.flyExpression.fillCircle(-90 + gazeX, -45 + gazeY, 29);
+    this.flyExpression.fillCircle(90 + gazeX, -45 + gazeY, 29);
+    this.flyExpression.fillStyle(0xfff1cf, 0.78);
+    this.flyExpression.fillCircle(-99 + gazeX, -55 + gazeY, 7);
+    this.flyExpression.fillCircle(81 + gazeX, -55 + gazeY, 7);
+
+    const isAttacking = phase === HAND_PHASE_WIND_UP || phase === HAND_PHASE_STRIKE;
+    const isFrustrated = this.missReactionRemainingMs > 0;
+    this.flyExpression.lineStyle(11, 0x2d2521, 0.95);
+    if (isFrustrated) {
+      this.flyExpression.lineBetween(-150, -91, -48, -111);
+      this.flyExpression.lineBetween(48, -111, 150, -91);
+    } else if (isAttacking) {
+      this.flyExpression.lineBetween(-150, -116, -48, -88);
+      this.flyExpression.lineBetween(48, -88, 150, -116);
+    } else {
+      this.flyExpression.lineBetween(-146, -108, -52, -101);
+      this.flyExpression.lineBetween(52, -101, 146, -108);
+    }
+
+    this.flyExpression.lineStyle(10, 0x2d2521, 1).beginPath();
+    if (isFrustrated) {
+      this.flyExpression.moveTo(-48, 112).lineTo(0, 89).lineTo(48, 112);
+    } else if (this.hitReactionRemainingMs > 0) {
+      this.flyExpression.moveTo(-58, 87).lineTo(0, 119).lineTo(58, 87);
+    } else if (isAttacking) {
+      this.flyExpression.moveTo(-55, 91).lineTo(0, 121).lineTo(55, 91);
+    } else {
+      this.flyExpression.moveTo(-50, 90).lineTo(0, 108).lineTo(50, 90);
+    }
+    this.flyExpression.strokePath();
+    if (isFrustrated) {
+      this.flyExpression.fillStyle(0x67d5ff, 0.78);
+      this.flyExpression.fillTriangle(144, -91, 156, -121, 167, -91);
+      this.flyExpression.fillCircle(155, -87, 11);
+    } else if (this.hitReactionRemainingMs > 0) {
+      this.flyExpression.lineStyle(5, 0xfff1cf, 0.62);
+      this.flyExpression.lineBetween(-38, 103, 38, 103);
+    }
+  }
+
+  private drawSlapTelegraph(): void {
+    this.telegraphGraphics.clear();
+    const phase = this.simulation.hand_phase(0);
+    if (
+      phase !== HAND_PHASE_WIND_UP
+      && phase !== HAND_PHASE_STRIKE
+      && phase !== HAND_PHASE_IMPACT
+    ) {
+      return;
+    }
+
+    const windUpProgress = phase === HAND_PHASE_WIND_UP
+      ? Phaser.Math.Clamp(this.simulation.hand_phase_tick(0) / HAND_WIND_UP_TICKS, 0, 1)
+      : 1;
+    const strikeProgress = phase === HAND_PHASE_STRIKE
+      ? Phaser.Math.Clamp(this.simulation.hand_phase_tick(0) / HAND_STRIKE_TICKS, 0, 1)
+      : 0;
+    const pulse = 0.5 + Math.sin(this.presentationTimeMs * 0.03) * 0.5;
+    const warningColor = phase === HAND_PHASE_WIND_UP ? 0xf2cf74 : 0xe8573f;
+    const targetRadius = phase === HAND_PHASE_WIND_UP
+      ? 52 - windUpProgress * 20
+      : 29 + pulse * 4;
+
+    this.telegraphGraphics
+      .fillStyle(0xd94b35, 0.045 + windUpProgress * 0.065)
+      .fillCircle(this.attackTarget.x, this.attackTarget.y, targetRadius + 11)
+      .lineStyle(3 + strikeProgress * 2, warningColor, 0.6 + pulse * 0.35)
+      .strokeCircle(this.attackTarget.x, this.attackTarget.y, targetRadius);
+
+    const bracket = 13;
+    const gap = targetRadius + 5;
+    this.telegraphGraphics.lineStyle(3, warningColor, 0.9);
+    this.telegraphGraphics.lineBetween(
+      this.attackTarget.x - gap - bracket,
+      this.attackTarget.y,
+      this.attackTarget.x - gap,
+      this.attackTarget.y,
+    );
+    this.telegraphGraphics.lineBetween(
+      this.attackTarget.x + gap,
+      this.attackTarget.y,
+      this.attackTarget.x + gap + bracket,
+      this.attackTarget.y,
+    );
+    this.telegraphGraphics.lineBetween(
+      this.attackTarget.x,
+      this.attackTarget.y - gap - bracket,
+      this.attackTarget.x,
+      this.attackTarget.y - gap,
+    );
+    this.telegraphGraphics.lineBetween(
+      this.attackTarget.x,
+      this.attackTarget.y + gap,
+      this.attackTarget.x,
+      this.attackTarget.y + gap + bracket,
+    );
+
+    if (phase === HAND_PHASE_STRIKE) {
+      this.telegraphGraphics.lineStyle(4, 0xe8573f, 0.22 + strikeProgress * 0.38);
+      for (let index = 0; index < 2; index += 1) {
+        this.telegraphGraphics.lineBetween(
+          this.simulation.hand_palm_x(index),
+          this.simulation.hand_palm_y(index),
+          this.attackTarget.x,
+          this.attackTarget.y,
+        );
+      }
+    }
+  }
+
+  private drawPresentationEffects(): void {
+    this.effectsGraphics.clear();
+    if (this.impactEffectRemainingMs <= 0) {
+      return;
+    }
+    const progress = 1 - this.impactEffectRemainingMs / IMPACT_EFFECT_MS;
+    const alpha = Math.max(0, 1 - progress);
+    const color = this.hitReactionRemainingMs > 0 ? 0xffcf6b : 0x67d5ff;
+    const innerRadius = 18 + progress * 28;
+    const outerRadius = 42 + progress * 72;
+    this.effectsGraphics
+      .lineStyle(5 - progress * 3, color, alpha * 0.9)
+      .strokeCircle(this.effectTarget.x, this.effectTarget.y, innerRadius);
+    this.effectsGraphics.lineStyle(3, color, alpha * 0.78);
+    for (let ray = 0; ray < 12; ray += 1) {
+      const angle = (Math.PI * 2 * ray) / 12;
+      this.effectsGraphics.lineBetween(
+        this.effectTarget.x + Math.cos(angle) * (innerRadius + 8),
+        this.effectTarget.y + Math.sin(angle) * (innerRadius + 8),
+        this.effectTarget.x + Math.cos(angle) * outerRadius,
+        this.effectTarget.y + Math.sin(angle) * outerRadius,
+      );
+    }
+  }
+
+  private showReaction(text: string, color: string, x: number, y: number): void {
+    this.reactionTextRemainingMs = REACTION_TEXT_MS;
+    this.reactionTextOriginY = y;
+    this.reactionText
+      .setText(text)
+      .setColor(color)
+      .setPosition(x, y)
+      .setAlpha(1)
+      .setScale(1)
+      .setVisible(true);
+  }
+
+  private resetPresentation(): void {
+    this.presentationTimeMs = 0;
+    this.previousHandPhase = HAND_PHASE_TRACK;
+    this.previousRoundStatus = ROUND_ACTIVE;
+    this.impactEffectRemainingMs = 0;
+    this.missReactionRemainingMs = 0;
+    this.hitReactionRemainingMs = 0;
+    this.reactionTextRemainingMs = 0;
+    this.attackTarget.set(WIDTH / 2, HEIGHT / 2);
+    this.effectTarget.copy(this.attackTarget);
+    this.telegraphGraphics.clear();
+    this.effectsGraphics.clear();
+    this.reactionText.setVisible(false);
+    this.flyHead.setPosition(WIDTH / 2, 265).setScale(1).setRotation(0);
+    this.player.setScale(1);
   }
 
   private drawHands(): void {
@@ -493,30 +838,41 @@ class GrayboxScene extends Phaser.Scene {
       const palmY = this.simulation.hand_palm_y(index);
       const phase = this.simulation.hand_phase(index);
       const activeContact = this.simulation.hand_has_active_contact(index);
-      const palmColor = activeContact ? 0xd94b35 : phase === 1 ? 0x9d6749 : 0x5b4639;
+      const palmColor = activeContact
+        ? 0xd94b35
+        : phase === HAND_PHASE_WIND_UP
+          ? 0x9d6749
+          : phase === HAND_PHASE_STRIKE
+            ? 0x744b3b
+            : 0x5b4639;
       const fingerDirection = index === 0 ? 1 : -1;
+      const palmWidth = phase === HAND_PHASE_STRIKE ? 72 : 64;
+      const palmHeight = phase === HAND_PHASE_WIND_UP ? 82 : 76;
 
-      this.hands.fillStyle(palmColor).fillEllipse(palmX, palmY, 64, 76);
-      this.hands.lineStyle(5, 0x2d2521).strokeEllipse(palmX, palmY, 64, 76);
+      if (phase === HAND_PHASE_STRIKE) {
+        const trailDirection = index === 0 ? -1 : 1;
+        this.hands.lineStyle(5, 0xe8a36f, 0.25);
+        for (const trailY of [-18, 0, 18]) {
+          this.hands.lineBetween(
+            palmX + trailDirection * 38,
+            palmY + trailY,
+            palmX + trailDirection * 82,
+            palmY + trailY,
+          );
+        }
+      }
+
+      this.hands.fillStyle(palmColor).fillEllipse(palmX, palmY, palmWidth, palmHeight);
+      this.hands.lineStyle(5, 0x2d2521).strokeEllipse(palmX, palmY, palmWidth, palmHeight);
       for (const fingerY of [-22, 0, 22]) {
         const fingerX = palmX + fingerDirection * 29;
         this.hands.fillStyle(palmColor).fillCircle(fingerX, palmY + fingerY, 13);
         this.hands.lineStyle(4, 0x2d2521).strokeCircle(fingerX, palmY + fingerY, 13);
       }
 
-      if (phase === 1) {
+      if (phase === HAND_PHASE_WIND_UP) {
         this.hands.lineStyle(3, 0xf2cf74, 0.9).strokeCircle(palmX, palmY, 48);
       }
-    }
-
-    if (this.simulation.attack_active) {
-      const targetX = (
-        this.simulation.hand_palm_x(0) + this.simulation.hand_palm_x(1)
-      ) / 2;
-      const targetY = (
-        this.simulation.hand_palm_y(0) + this.simulation.hand_palm_y(1)
-      ) / 2;
-      this.hands.lineStyle(3, 0xf2cf74, 0.65).strokeCircle(targetX, targetY, 24);
     }
   }
 

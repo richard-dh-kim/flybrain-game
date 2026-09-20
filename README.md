@@ -56,6 +56,11 @@ WebGPU; the small GRU controls the hands during loading and automatically
 remains active on unsupported devices. A dedicated or integrated WebGPU device
 can run the full model, and an RTX card is not required.
 
+The fly watches the player and locks onto the committed slap point. The
+wind-up target shrinks before the hands close, while motion streaks, impact
+bursts, and hit/miss reactions make the attack timing visible without changing
+the deterministic simulation or collision rules.
+
 The always-visible brain below the playfield shows 64 live values. With the
 full controller active, those are 16 sensory, 32 whole-graph, and 16 motor
 samples from its 165,122-neuron state. The brain shape is anatomical, while the

@@ -121,9 +121,11 @@ declare global {
       snapshot: () => {
         policyMode: string;
         tick: number;
+        handPhase: number;
         playerX: number;
         debugEnabled: boolean;
         debugPanelVisible: boolean;
+        reactionText: string | null;
         simulationRateHz: number;
         connectome: {
           status: "idle" | "loading" | "ready" | "error";

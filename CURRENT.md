@@ -161,6 +161,13 @@ Completed:
   automatic fallback. `H` reveals technical statistics, hitboxes, targets, and
   the development-only controller keys `1` through `5`; hiding it removes the
   complete debug panel and its background.
+- The first Phase 6 readability pass animates the fly independently of the
+  authoritative simulation: its pupils follow the player, lock onto a committed
+  target, and its head and expression anticipate the slap. A shrinking target,
+  strike lines, hand motion streaks, impact burst, and short hit/miss labels make
+  all five hand phases easier to read. The fly shakes and sweats after a miss.
+  Browser automation verifies that wind-up appears before collision and that a
+  direction change during commitment can produce visible miss feedback.
 - Rust formatting, Clippy, workspace tests, Python replay test, WASM replay
   test, policy comparison, browser automation, TypeScript checking, and the
   production browser build pass in WSL2.

@@ -3,12 +3,14 @@ import { expect, test, type Page } from "@playwright/test";
 interface BrowserSnapshot {
   tick: number;
   roundStatus: number;
+  handPhase: number;
   playerX: number;
   playerY: number;
   policyMode: "idle" | "chase" | "predictive" | "learned" | "connectome";
   pointerActive: boolean;
   debugEnabled: boolean;
   debugPanelVisible: boolean;
+  reactionText: string | null;
   simulationRateHz: number;
   renderRateFps: number;
   connectome: {
@@ -67,6 +69,11 @@ test("collision ends the round and restart is immediate", async ({ page }) => {
   await tapGameKey(page, "h");
   await tapGameKey(page, "3");
 
+  await page.waitForFunction(
+    () => window.__flybrainGame?.snapshot().handPhase === 1,
+    undefined,
+    { timeout: 3_000 },
+  );
   await expect
     .poll(async () => (await snapshot(page)).roundStatus, { timeout: 5_000 })
     .toBe(1);
@@ -91,6 +98,37 @@ test("frozen learned GRU runs locally and completes a slap", async ({ page }) =>
     .poll(async () => (await snapshot(page)).roundStatus, { timeout: 6_000 })
     .toBe(1);
   expect((await snapshot(page)).tick).toBeLessThan(240);
+});
+
+test("a committed slap can miss and shows its reaction", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("canvas")).toBeVisible();
+  await tapGameKey(page, "h");
+  await tapGameKey(page, "3");
+
+  const canvas = page.locator("canvas");
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(
+    bounds!.x + bounds!.width * 0.1,
+    bounds!.y + bounds!.height * 0.8,
+  );
+  await page.waitForFunction(
+    () => window.__flybrainGame?.snapshot().handPhase === 1,
+    undefined,
+    { timeout: 3_000 },
+  );
+
+  await page.mouse.move(
+    bounds!.x + bounds!.width * 0.9,
+    bounds!.y + bounds!.height * 0.16,
+  );
+  await page.waitForFunction(
+    () => window.__flybrainGame?.snapshot().reactionText === "MISS!",
+    undefined,
+    { timeout: 2_000 },
+  );
+  expect((await snapshot(page)).roundStatus).toBe(0);
 });
 
 async function snapshot(page: Page): Promise<BrowserSnapshot> {

@@ -143,8 +143,10 @@ Completed:
   `4`.
 - Live mode `5` no longer pauses mouse movement when a brain result misses a
   render frame. The simulation continues at its fixed rate using the latest
-  hand action while ordered brain states finish in the worker. Switching modes
-  cancels queued work from the previous recurrent epoch. The status line now
+  hand action, with at most one brain update in flight. This prevents a slow
+  frame from building a backlog and samples the newest game state when the
+  worker becomes available. Switching modes cancels work from the previous
+  recurrent epoch. The status line now
   reports brain median/p95 time, end-to-end p95, queue depth, simulation rate,
   and render rate. The `H` overlay labels the green mouse destination separately
   from the yellow hand target.

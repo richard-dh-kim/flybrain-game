@@ -11,7 +11,6 @@ import type {
 import type { PolicyAction } from "./scriptedPolicy";
 
 const MODEL_BASE_URL = "/models/connectome-u16-v2";
-const MAX_PENDING_STEPS = 30;
 const TIMING_WINDOW = 120;
 
 export type ConnectomePolicyStatus = "idle" | "loading" | "ready" | "error";
@@ -98,11 +97,8 @@ export class ConnectomePolicy {
     if (
       this.status !== "ready"
       || !this.worker
+      || this.pendingRequests.size > 0
     ) {
-      return false;
-    }
-    if (this.pendingRequests.size >= MAX_PENDING_STEPS) {
-      this.fail(`WebGPU inference fell ${MAX_PENDING_STEPS} game ticks behind`);
       return false;
     }
     const features = new Float32Array(observationFeatures(simulation));

@@ -187,14 +187,15 @@ default; the 19,203-parameter conventional GRU covers loading and unsupported
 devices. This is still a one-seed model, and the ignored 148 MiB local model
 assets must be prepared before the full brain can load from a fresh checkout.
 
-Two of three predeclared seed-matched topology comparisons are complete. At
-both seeds, measured MaleCNS beat the degree-matched presynaptic shuffle on
-offline error and closed-loop efficiency. At seed 3407, measured hit 33/33
-validation paths, shuffled hit 29/33, and random sparse hit 33/33. Random sparse
-again matched or beat measured on the main metrics, so the current evidence
-shows that wiring matters but does not show biological-topology superiority.
-Exact results and hashes are in `docs/experiments/phase-4-topology-controls.md`
-and its compact metrics JSON.
+The predeclared three-seed topology comparison is complete. Measured MaleCNS
+had lower offline error than the degree-matched presynaptic shuffle at every
+seed and won the aggregate closed-loop comparison: 99/99 versus 95/99
+validation hits, with 86 versus 194 misses. The broader random-sparse control
+was best overall, with 99/99 hits, 80 misses, and the lowest mean offline error.
+The result shows that wiring affects this controller, but does not show that
+the measured biological topology is superior for this task. Exact results and
+hashes are in `docs/experiments/phase-4-topology-controls.md` and its compact
+metrics JSON.
 
 ## Local environment note
 
@@ -243,17 +244,14 @@ browser through `localhost`.
 
 ## Immediate next work
 
-Continue model validation alongside Phase 6 presentation work:
+Prepare the working game for a public static release:
 
-1. Complete the measured, shuffled-presynaptic, and random-sparse conditions
-   at the remaining predeclared seed 99017 before estimating a topology effect
-   or making a biological-topology comparison.
+1. Recheck full-brain hardware timing after major presentation changes and test
+   an intentionally missing model to confirm the visible CPU fallback. A phone
+   browser is the remaining practical device check.
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.
-3. Recheck full-brain hardware timing after major presentation changes and test
-   an intentionally missing model to confirm the visible CPU fallback. A phone
-   browser is the remaining practical device check.
-4. Treat the current cute visual style as the intended art direction. Additional
+3. Treat the current cute visual style as the intended art direction. Additional
    onboarding, accessibility options, and sound are optional polish rather than
    release gates.

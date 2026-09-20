@@ -1,19 +1,50 @@
 {
   "date": "2026-09-21",
-  "status": "seeds_1701_3407_complete",
-  "claim": "Across seeds 1701 and 3407, measured MaleCNS consistently beats the tightly degree-matched shuffle, while random sparse matches or beats measured.",
-  "claim_limit": "Two of three predeclared seeds are complete; seed 99017 remains before estimating a topology effect.",
+  "status": "initial_three_seed_comparison_complete",
+  "claim": "Measured MaleCNS beats the tightly degree-matched shuffle overall, but random sparse is best on every aggregate measure.",
+  "claim_limit": "Three seeds finish the predeclared initial comparison but do not establish biological-topology superiority or a precise general effect.",
   "graph_sha256": "eff4093bf53c4dd17d7ee4f2f838f6ae5ede70570f9a91317dd8824cca5c771d",
   "neurons": 165122,
   "edges": 25563197,
   "predeclared_seeds": [1701, 3407, 99017],
-  "completed_seeds": [1701, 3407],
+  "completed_seeds": [1701, 3407, 99017],
   "training": {
     "optimizer_steps_per_condition": 1800,
     "pilot_learning_rate": 0.02,
     "refinement_learning_rate": 0.01,
     "batch_size": 4,
     "tbptt_window": 4
+  },
+  "aggregate": {
+    "optimizer_steps_per_topology": 5400,
+    "evaluation_episodes_per_topology": 36,
+    "validation_episodes_per_topology": 99,
+    "conditions": {
+      "measured": {
+        "mean_offline_carried_target_rmse_pixels": 52.81611500472527,
+        "sweep_hits": 33,
+        "validation_hits": 99,
+        "mean_validation_hit_ticks": 109.03030303030303,
+        "validation_accepted_strikes": 185,
+        "validation_completed_misses": 86
+      },
+      "shuffled_presynaptic": {
+        "mean_offline_carried_target_rmse_pixels": 71.26625688131271,
+        "sweep_hits": 29,
+        "validation_hits": 95,
+        "mean_validation_hit_ticks": 156.0825496342738,
+        "validation_accepted_strikes": 293,
+        "validation_completed_misses": 194
+      },
+      "random_sparse": {
+        "mean_offline_carried_target_rmse_pixels": 46.87805944911376,
+        "sweep_hits": 35,
+        "validation_hits": 99,
+        "mean_validation_hit_ticks": 98.21212121212122,
+        "validation_accepted_strikes": 179,
+        "validation_completed_misses": 80
+      }
+    }
   },
   "seeds": {
     "1701": {
@@ -141,6 +172,70 @@
           "refinement_metrics_sha256": "e7a30ee88a71f2382e63dc0aae163759d39f3c2372bfafeaa74b970967f784c7",
           "sweep_metrics_sha256": "5938dec953e3deef38dcabd2a87555e112d4ebeb5efab330ab417e2666508ec3",
           "validation_metrics_sha256": "c08d59301a9b76ca4b0ec8d3278bf0c7cd655fad316c37799b73d4911e4cdd9a"
+        }
+      }
+    },
+    "99017": {
+      "seed": 99017,
+      "topology_seed": 99017,
+      "processed_rows_per_condition": 28475,
+      "conditions": {
+        "measured": {
+          "topology_digest": "15f2c9dc0fa72c8dcb871da7f6ca19dc7f7a7d3d2610ece4dac640b4eea581a2",
+          "training_seconds": 843.284554465994,
+          "offline_carried_target_rmse_pixels": 51.23538895154777,
+          "offline_reset_target_rmse_pixels": 172.06520690421942,
+          "offline_strike_precision": 0.2,
+          "offline_strike_recall": 0.35714285714285715,
+          "selected_threshold": 0.35,
+          "sweep_hits": 11,
+          "validation_hits": 33,
+          "validation_mean_hit_ticks": 100.57575757575758,
+          "validation_accepted_strikes": 62,
+          "validation_completed_misses": 29,
+          "checkpoint_sha256": "8f8a9df192733ba89f390b920ba80abb157b4438096b774647d0a6195b50469a",
+          "pilot_metrics_sha256": "af5b26292708a6c16ec045c5b61ec186611b0fc0d81051318ced07b0a2d6b3bd",
+          "refinement_metrics_sha256": "30003ac98e8e5e0e47dc1a9a68e9175229a0b9d379da59ec44adff3cbfbbd060",
+          "sweep_metrics_sha256": "dc9408ff9fa9bdbc72e113fbb7637f80c3c8ee7e8198e9b714c2695a658ba3c8",
+          "validation_metrics_sha256": "88f16ec4be51bc2faa3c40231a49a0886af7ed706aac4ed58103c848083200bc"
+        },
+        "shuffled_presynaptic": {
+          "topology_digest": "edf2f6070dc21f1f031eea2d89690960515f5bb54c4a1c48825a714babe44a96",
+          "training_seconds": 942.1795881800062,
+          "offline_carried_target_rmse_pixels": 53.910354577696346,
+          "offline_reset_target_rmse_pixels": 169.70439151333915,
+          "offline_strike_precision": 0.2653061224489796,
+          "offline_strike_recall": 0.30952380952380953,
+          "selected_threshold": 0.5,
+          "sweep_hits": 12,
+          "validation_hits": 33,
+          "validation_mean_hit_ticks": 88.24242424242425,
+          "validation_accepted_strikes": 53,
+          "validation_completed_misses": 20,
+          "checkpoint_sha256": "5d6e0aafe9b264c7de92faa1240fdff2af9dacaea08ecb7b87e9c7b1fc78ed39",
+          "pilot_metrics_sha256": "be5aa9497bbc6b7d5f99a2375e4213e6b3c81d17267f7a61555a5c839d1e65ad",
+          "refinement_metrics_sha256": "73b0796e4860674410503d4e6e1fe135c7ebc24fde0e163b5c42fad639ce596b",
+          "sweep_metrics_sha256": "fd5f4bacda6d60b668e26d4465e70a776f3e90997ebae5dbad3f4bb11159f43e",
+          "validation_metrics_sha256": "a1c6bb3e42413a346b434b4bb7d7e5222d47f8c6647f3c0149b3e084c75cfb01"
+        },
+        "random_sparse": {
+          "topology_digest": "3ba3a06007a181f7710ebc2be1df411dabfbf954eecc7c06de4905c1901bf176",
+          "training_seconds": 939.1379847040225,
+          "offline_carried_target_rmse_pixels": 44.141495979848486,
+          "offline_reset_target_rmse_pixels": 180.72521057483814,
+          "offline_strike_precision": 0.19318181818181818,
+          "offline_strike_recall": 0.40476190476190477,
+          "selected_threshold": 0.5,
+          "sweep_hits": 12,
+          "validation_hits": 33,
+          "validation_mean_hit_ticks": 93.66666666666667,
+          "validation_accepted_strikes": 56,
+          "validation_completed_misses": 23,
+          "checkpoint_sha256": "b8550226805aa99e879873f97f1499a51bea2ca6bb75b07929950d8c3250e5ff",
+          "pilot_metrics_sha256": "835a792523b4c8c4f743149798d37471f31395e21fed0761010acda67642d479",
+          "refinement_metrics_sha256": "c2951e3966a19892526feff33e00d8cb69b4a81a6bfe19e90d885032b28f4831",
+          "sweep_metrics_sha256": "52d4919153a192dc0c0bf19a11fb344eff260da934be59f2835a82f972ad562a",
+          "validation_metrics_sha256": "dd65c7a394895fc10eca53d89bc041d37e2818d3e568e6e7147762fa682d85de"
         }
       }
     }

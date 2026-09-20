@@ -1,14 +1,16 @@
 # FlyBrain Swatter: Current Project Plan
 
-Last updated: 2026-09-20
+Last updated: 2026-09-21
 
 Status: Phases 0 and 1 passed, and the Phase 2 technical gate is complete.
 Versioned data, deterministic curricula, an expert, Parquet logging, and visual
 replay feed the Phase 3 MLP and GRU baselines. Varied-start controls are
 complete for one seed, and the frozen earlier GRU runs in the browser. The
 first Phase 4 full MaleCNS checkpoint beats its untrained initialization on 33
-held-out varied-start trajectories. Multi-seed and topology controls remain,
-and the MaleCNS controller is now available as an experimental browser mode.
+held-out varied-start trajectories. The initial three-seed topology comparison
+is complete: measured wiring beats the tightly matched shuffle overall, while
+random sparse beats measured overall, so no biological-topology superiority is
+claimed. The MaleCNS controller is now available as an experimental browser mode.
 Phase 5 has a checksummed exact float32 package and parity-tested Rust core;
 its first native CPU baseline misses the 60 Hz and public-download targets. A
 validated u16 package preserves the live result, WebGPU passes software-adapter correctness,

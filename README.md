@@ -93,6 +93,21 @@ npm run benchmark:connectome-wasm
 npm run test:connectome-webgpu
 ```
 
+The first topology controls use the same seed and two-stage training schedule:
+
+```bash
+npm run train:connectome-shuffled-pilot
+npm run train:connectome-shuffled-refine
+npm run train:connectome-random-pilot
+npm run train:connectome-random-refine
+```
+
+The shuffled control preserves both incoming degrees and the outgoing-degree
+multiset. The random-sparse control preserves each incoming degree but draws
+new unique sending partners. See
+`docs/experiments/phase-4-topology-controls.md` for the fixed comparison rules
+and current evidence.
+
 ## Intended stack
 
 - TypeScript, Vite, and Phaser for the browser presentation.

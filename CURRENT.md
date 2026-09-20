@@ -236,13 +236,16 @@ browser through `localhost`.
 
 Continue model validation alongside Phase 6 presentation work:
 
-1. Replicate the conventional and MaleCNS runs across additional seeds, then
-   add shuffled-topology and matched random-sparse controls before making any
-   topology comparison.
+1. Complete the seed-1701 shuffled-presynaptic and matched random-sparse runs
+   defined in `docs/experiments/phase-4-topology-controls.md`, then repeat all
+   three topology conditions across additional predeclared seeds before making
+   a biological-topology comparison.
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.
 3. Recheck full-brain hardware timing after major presentation changes and test
-   an intentionally missing model to confirm the visible GRU fallback.
-4. Continue Phase 6 with readable wind-up, hit, miss, and fly-reaction animation,
-   followed by original art and sound.
+   an intentionally missing model to confirm the visible CPU fallback. A phone
+   browser is the remaining practical device check.
+4. Treat the current cute visual style as the intended art direction. Additional
+   onboarding, accessibility options, and sound are optional polish rather than
+   release gates.

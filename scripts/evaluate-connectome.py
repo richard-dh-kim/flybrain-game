@@ -35,6 +35,7 @@ from flybrain_training.schema import (
     ObservationV1,
     synchronized_strike_is_ready,
 )
+from flybrain_training.topology_controls import build_topology_control
 
 
 EXPECTED_GRAPH_SHA256 = "eff4093bf53c4dd17d7ee4f2f838f6ae5ede70570f9a91317dd8824cca5c771d"
@@ -166,7 +167,7 @@ class LiveConnectomePolicy:
 
 
 def construct_policy(
-    graph_path: Path,
+    graph: dict[str, np.ndarray],
     sensory_ids: np.ndarray,
     motor_ids: np.ndarray,
     seed: int,
@@ -174,14 +175,13 @@ def construct_policy(
     trainable_state: dict[str, torch.Tensor] | None = None,
 ) -> MaleCnsPolicy:
     torch.manual_seed(seed)
-    with np.load(graph_path) as graph:
-        policy = MaleCnsPolicy(
-            graph,
-            sensory_ids,
-            motor_ids,
-            input_size=len(FEATURE_NAMES),
-            seed=seed,
-        )
+    policy = MaleCnsPolicy(
+        graph,
+        sensory_ids,
+        motor_ids,
+        input_size=len(FEATURE_NAMES),
+        seed=seed,
+    )
     if trainable_state is not None:
         parameters = dict(policy.named_parameters())
         if set(parameters) != set(trainable_state):
@@ -289,10 +289,27 @@ def main() -> None:
     if checkpoint["feature_schema_version"] != FEATURE_SCHEMA_VERSION:
         raise ValueError("checkpoint uses a different feature schema")
     seed = int(checkpoint["seed"])
+    topology_variant = str(checkpoint.get("topology_variant", "measured"))
+    topology_seed = int(checkpoint.get("topology_seed", seed))
     nodes = feather.read_table(graph_directory / "nodes.feather")
     superclasses = np.asarray(nodes["superclass"].fill_null("").to_pylist())
     sensory_ids = np.flatnonzero(superclasses == "vnc_sensory")
     motor_ids = np.flatnonzero(superclasses == "vnc_motor")
+    with np.load(graph_path) as source_graph:
+        body_ids = np.asarray(source_graph["body_ids"])
+        node_body_ids = np.asarray(nodes["bodyId"])
+        if not np.array_equal(body_ids, node_body_ids):
+            raise ValueError("nodes.feather order does not match graph body_ids")
+        graph, topology_control = build_topology_control(
+            source_graph, topology_variant, topology_seed
+        )
+    checkpoint_topology_digest = checkpoint.get("topology_digest")
+    if (
+        checkpoint_topology_digest is not None
+        and checkpoint_topology_digest != topology_control["digest"]
+    ):
+        raise ValueError("checkpoint topology digest does not match reconstructed graph")
+    del nodes, superclasses, body_ids, node_body_ids
     validation = validation_features(args.validation_data)
 
     initial_threshold = None
@@ -305,13 +322,23 @@ def main() -> None:
             raise ValueError("initial reference uses a different connectome graph")
         if reference["seed"] != seed:
             raise ValueError("initial reference uses a different interface seed")
+        if reference.get("topology_variant", "measured") != topology_variant:
+            raise ValueError("initial reference uses a different topology variant")
+        if int(reference.get("topology_seed", seed)) != topology_seed:
+            raise ValueError("initial reference uses a different topology seed")
+        reference_topology_digest = reference.get("topology_digest")
+        if (
+            reference_topology_digest is not None
+            and reference_topology_digest != topology_control["digest"]
+        ):
+            raise ValueError("initial reference uses a different topology")
         initial_threshold = reference["initial_threshold"]
         initial_calibration = reference["initial_threshold_calibration"]
         initial_live = reference["initial"]
         initial_reference_sha256 = sha256_file(args.initial_reference)
     elif not args.trained_only:
         initial = construct_policy(
-            graph_path, sensory_ids, motor_ids, seed, device
+            graph, sensory_ids, motor_ids, seed, device
         )
         initial_threshold, initial_calibration = calibrate_threshold(
             initial, validation, device
@@ -338,7 +365,7 @@ def main() -> None:
         torch.cuda.empty_cache()
 
     trained = construct_policy(
-        graph_path,
+        graph,
         sensory_ids,
         motor_ids,
         seed,
@@ -381,8 +408,8 @@ def main() -> None:
         "experiment": "Phase 4 trained versus initialized live controller",
         "status": status,
         "claim": (
-            "Closed-loop game comparison only; one seed and no topology controls. "
-            "This does not establish biological-topology superiority."
+            "One closed-loop topology condition and seed. Biological-topology "
+            "claims require matched control conditions across additional seeds."
         ),
         "suite": args.suite,
         "maximum_ticks": args.maximum_ticks,
@@ -393,6 +420,10 @@ def main() -> None:
         "checkpoint": str(args.checkpoint),
         "checkpoint_sha256": sha256_file(args.checkpoint),
         "seed": seed,
+        "topology_variant": topology_variant,
+        "topology_seed": topology_seed,
+        "topology_digest": topology_control["digest"],
+        "topology_control": topology_control,
         "initial_threshold": initial_threshold,
         "initial_threshold_calibration": initial_calibration,
         "initial_reference": (

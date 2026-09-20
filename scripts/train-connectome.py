@@ -27,6 +27,11 @@ from flybrain_training.features import (
     normalized_target,
     record_features,
 )
+from flybrain_training.topology_controls import (
+    TOPOLOGY_VARIANTS,
+    build_topology_control,
+    topology_digest,
+)
 
 
 TARGET_LOSS_WEIGHT = 4.0
@@ -39,16 +44,6 @@ def sha256_file(path: Path) -> str:
     with path.open("rb") as source:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(chunk)
-    return digest.hexdigest()
-
-
-def topology_digest(crow: np.ndarray, column: np.ndarray) -> str:
-    digest = hashlib.sha256()
-    for array in (crow, column):
-        contiguous = np.ascontiguousarray(array)
-        digest.update(contiguous.dtype.str.encode())
-        digest.update(np.asarray(contiguous.shape, dtype=np.int64).tobytes())
-        digest.update(contiguous.tobytes())
     return digest.hexdigest()
 
 
@@ -298,10 +293,19 @@ def main() -> None:
     parser.add_argument("--probe-ticks", type=int, default=12)
     parser.add_argument("--learning-rate", type=float, default=0.02)
     parser.add_argument("--seed", type=int, default=1701)
+    parser.add_argument(
+        "--topology", choices=TOPOLOGY_VARIANTS, default="measured"
+    )
+    parser.add_argument(
+        "--topology-seed",
+        type=int,
+        help="Control-topology seed; defaults to --seed",
+    )
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--allow-cpu", action="store_true")
     parser.add_argument("--full-validation", action="store_true")
     args = parser.parse_args()
+    topology_seed = args.seed if args.topology_seed is None else args.topology_seed
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -340,9 +344,12 @@ def main() -> None:
         node_body_ids = np.asarray(nodes["bodyId"])
         if not np.array_equal(body_ids, node_body_ids):
             raise ValueError("nodes.feather order does not match graph body_ids")
-        topology_before = topology_digest(graph["crow"], graph["col"])
+        controlled_graph, topology_control = build_topology_control(
+            graph, args.topology, topology_seed
+        )
+        topology_before = str(topology_control["digest"])
         policy = MaleCnsPolicy(
-            graph,
+            controlled_graph,
             sensory_ids,
             motor_ids,
             input_size=len(FEATURE_NAMES),
@@ -350,7 +357,7 @@ def main() -> None:
         )
         neuron_count = policy.core.n
         edge_count = policy.core.column.numel()
-    del nodes, superclasses, body_ids, node_body_ids
+    del controlled_graph, nodes, superclasses, body_ids, node_body_ids
     resume_sha256 = None
     if args.resume is not None:
         checkpoint = torch.load(args.resume, map_location="cpu", weights_only=True)
@@ -360,6 +367,18 @@ def main() -> None:
             raise ValueError("resume checkpoint uses a different feature schema")
         if checkpoint["seed"] != args.seed:
             raise ValueError("resume checkpoint uses a different interface seed")
+        checkpoint_topology = checkpoint.get("topology_variant", "measured")
+        if checkpoint_topology != args.topology:
+            raise ValueError("resume checkpoint uses a different topology variant")
+        checkpoint_topology_seed = int(checkpoint.get("topology_seed", args.seed))
+        if checkpoint_topology_seed != topology_seed:
+            raise ValueError("resume checkpoint uses a different topology seed")
+        checkpoint_topology_digest = checkpoint.get("topology_digest")
+        if (
+            checkpoint_topology_digest is not None
+            and checkpoint_topology_digest != topology_before
+        ):
+            raise ValueError("resume checkpoint uses a different topology")
         parameters = dict(policy.named_parameters())
         saved_parameters = checkpoint["trainable_state_dict"]
         if set(parameters) != set(saved_parameters):
@@ -560,6 +579,10 @@ def main() -> None:
             "sensory_population": "vnc_sensory",
             "motor_population": "vnc_motor",
             "seed": args.seed,
+            "topology_variant": args.topology,
+            "topology_seed": topology_seed,
+            "topology_digest": topology_after,
+            "topology_control": topology_control,
             "optimizer_steps": len(history),
             "strike_threshold": (
                 full_validation["carried_state"]["strike_threshold"]
@@ -577,10 +600,13 @@ def main() -> None:
         "run_label": args.label,
         "status": "passed",
         "claim": (
-            "Engineering validation of full-graph task gradients and recurrent "
-            "state only; not a trained gameplay result or biological model."
+            "One topology condition and seed. Interpret behavior only in a "
+            "matched evaluation across topology conditions and additional seeds."
         ),
         "seed": args.seed,
+        "topology_variant": args.topology,
+        "topology_seed": topology_seed,
+        "topology_control": topology_control,
         "resume_checkpoint": str(args.resume) if args.resume is not None else None,
         "resume_checkpoint_sha256": resume_sha256,
         "device": str(device),

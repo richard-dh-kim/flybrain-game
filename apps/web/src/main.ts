@@ -88,6 +88,7 @@ class GrayboxScene extends Phaser.Scene {
   private learnedPolicy = new LearnedGruPolicy();
   private connectomePolicy = new ConnectomePolicy();
   private connectomeAction: PolicyAction | null = null;
+  private automaticFallback = false;
   private pointerDestination = new Phaser.Math.Vector2(WIDTH / 2, HEIGHT / 2);
   private pointerActive = false;
   private debugEnabled = false;
@@ -214,7 +215,7 @@ class GrayboxScene extends Phaser.Scene {
       .setVisible(false);
 
     this.add
-      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  R RESTART  ·  H DETAILS", {
+      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  4 COMPACT / 5 FULL  ·  R RESTART  ·  H DETAILS", {
         color: "#d9b98d",
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
         fontSize: "11px",
@@ -255,17 +256,17 @@ class GrayboxScene extends Phaser.Scene {
     if (this.debugEnabled && Phaser.Input.Keyboard.JustDown(this.exportKey)) {
       this.downloadHumanTrajectory();
     }
-    if (this.debugEnabled) {
+    if (Phaser.Input.Keyboard.JustDown(this.policyKeys.learned)) {
+      this.setPolicyMode("learned");
+    } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.connectome)) {
+      this.setPolicyMode("connectome");
+    } else if (this.debugEnabled) {
       if (Phaser.Input.Keyboard.JustDown(this.policyKeys.idle)) {
         this.setPolicyMode("idle");
       } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.chase)) {
         this.setPolicyMode("chase");
       } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.predictive)) {
         this.setPolicyMode("predictive");
-      } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.learned)) {
-        this.setPolicyMode("learned");
-      } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.connectome)) {
-        this.setPolicyMode("connectome");
       }
     }
 
@@ -274,6 +275,7 @@ class GrayboxScene extends Phaser.Scene {
       && this.connectomePolicy.snapshot().status === "error"
     ) {
       this.policyMode = "learned";
+      this.automaticFallback = true;
       this.learnedPolicy.reset();
       this.connectomeAction = null;
       this.brainText.setText("FLY BRAIN: COMPACT FALLBACK");
@@ -354,6 +356,7 @@ class GrayboxScene extends Phaser.Scene {
 
   private setPolicyMode(mode: PolicyMode): void {
     this.policyMode = mode;
+    this.automaticFallback = false;
     this.learnedPolicy.reset();
     this.connectomePolicy.reset();
     this.connectomeAction = null;
@@ -368,7 +371,7 @@ class GrayboxScene extends Phaser.Scene {
         : mode === "predictive"
           ? "DEV · PREDICTIVE [3]"
           : mode === "learned"
-            ? "COMPACT GRU FALLBACK [4]"
+            ? "COMPACT GRU [4]"
             : "FULL MALECNS · LOADING [5]";
     this.brainText.setText(`FLY BRAIN: ${label}`);
     this.syncConnectomeUi();
@@ -448,7 +451,7 @@ class GrayboxScene extends Phaser.Scene {
       this.brainVisualization.update({
         mode: "fallback",
         activity: this.learnedPolicy.activity(),
-        fallbackReason: connectome.status === "error"
+        fallbackReason: this.automaticFallback && connectome.status === "error"
           ? (connectome.error ?? "unknown error")
           : undefined,
       });

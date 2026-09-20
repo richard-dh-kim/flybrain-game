@@ -49,6 +49,10 @@ export class FlyBrainVisualization {
   private readonly statusElement: HTMLElement;
   private readonly badgeElement: HTMLElement;
   private readonly stepElement: HTMLElement;
+  private readonly noteElement: HTMLElement;
+  private readonly sensoryLabel: HTMLElement;
+  private readonly networkLabel: HTMLElement;
+  private readonly motorLabel: HTMLElement;
   private readonly nodes: SVGCircleElement[];
   private lastStatus = "";
 
@@ -57,6 +61,10 @@ export class FlyBrainVisualization {
     this.statusElement = requiredElement<HTMLElement>("#brain-monitor-status");
     this.badgeElement = requiredElement<HTMLElement>("#brain-controller-badge");
     this.stepElement = requiredElement<HTMLElement>("#brain-step");
+    this.noteElement = requiredElement<HTMLElement>("#brain-monitor-note");
+    this.sensoryLabel = requiredElement<HTMLElement>("#brain-region-sensory");
+    this.networkLabel = requiredElement<HTMLElement>("#brain-region-network");
+    this.motorLabel = requiredElement<HTMLElement>("#brain-region-motor");
     const connections = requiredElement<SVGGElement>("#brain-connections");
     const activity = requiredElement<SVGGElement>("#brain-activity");
 
@@ -82,6 +90,19 @@ export class FlyBrainVisualization {
       this.lastStatus = presentation.status;
     }
     this.stepElement.textContent = state.step === undefined ? "" : `brain step ${state.step}`;
+    const usesMaleCnsSamples = state.mode === "connectome";
+    this.sensoryLabel.hidden = !usesMaleCnsSamples;
+    this.motorLabel.hidden = !usesMaleCnsSamples;
+    this.networkLabel.textContent = usesMaleCnsSamples
+      ? "network"
+      : state.mode === "development"
+        ? "activity paused"
+        : "64 GRU units";
+    this.noteElement.textContent = usesMaleCnsSamples
+      ? "The shape follows fruit-fly brain anatomy. Light positions and faint links are an illustrative layout of 16 sensory, 32 whole-brain, and 16 motor samples."
+      : state.mode === "development"
+        ? "This scripted development controller has no neural state, so the activity lights are paused."
+        : "The fly shape is illustrative. In compact mode, all 64 lights are GRU hidden-state values rather than anatomical neuron samples.";
 
     for (const [index, node] of this.nodes.entries()) {
       const value = state.activity[index] ?? Number.NaN;
@@ -125,7 +146,9 @@ function presentationForState(state: BrainVisualizationState): {
   }
   if (state.mode === "fallback") {
     return {
-      badge: "COMPACT BRAIN · FALLBACK",
+      badge: state.fallbackReason
+        ? "COMPACT BRAIN · FALLBACK"
+        : "COMPACT GRU · MODE 4",
       status: state.fallbackReason
         ? `Full brain unavailable · ${state.fallbackReason}`
         : "64 live units from the compact recurrent controller",

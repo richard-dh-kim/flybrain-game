@@ -33,7 +33,7 @@
               <span><i class="legend-dot legend-dot--positive"></i> positive signal</span>
               <span><i class="legend-dot legend-dot--negative"></i> negative signal</span>
             </div>
-            <p class="brain-monitor__note">
+            <p id="brain-monitor-note" class="brain-monitor__note">
               The shape follows fruit-fly brain anatomy. Light positions and faint links are an
               illustrative layout of 16 sensory, 32 whole-brain, and 16 motor samples.
             </p>
@@ -92,16 +92,22 @@
               <g id="brain-connections" aria-hidden="true"></g>
               <g id="brain-activity" aria-hidden="true"></g>
             </svg>
-            <div class="brain-region-label brain-region-label--sensory">sensory</div>
-            <div class="brain-region-label brain-region-label--network">network</div>
-            <div class="brain-region-label brain-region-label--motor">motor</div>
+            <div id="brain-region-sensory" class="brain-region-label brain-region-label--sensory">
+              sensory
+            </div>
+            <div id="brain-region-network" class="brain-region-label brain-region-label--network">
+              network
+            </div>
+            <div id="brain-region-motor" class="brain-region-label brain-region-label--motor">
+              motor
+            </div>
           </div>
         </section>
         <p id="connectome-status" class="controller-status" role="status" aria-live="polite" hidden>
           Full connectome: starting
         </p>
         <div class="cabinet__footer">
-          <span>Move: Mouse / Touch · Details: H · Restart: R</span>
+          <span>Move: Mouse / Touch · Test brains: 4 compact / 5 full · Details: H · Restart: R</span>
           <span>MaleCNS build 0.3</span>
         </div>
       </section>

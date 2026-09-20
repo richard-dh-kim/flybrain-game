@@ -66,9 +66,11 @@ full controller active, those are 16 sensory, 32 whole-graph, and 16 motor
 samples from its 165,122-neuron state. The brain shape is anatomical, while the
 sample positions and faint links are illustrative. Press `H` to show technical
 timing, velocity, targets, collision shapes, phases, and cooldowns. Debug mode
-also enables controller keys `1` through `5` and `E` trajectory export. The
-green debug marker is the mouse destination and the yellow marker is the hand
-target.
+also enables scripted controller keys `1` through `3` and `E` trajectory
+export. During development, `4` selects the compact GRU and `5` selects the
+full MaleCNS controller directly so their behavior and activity labels can be
+compared. The green debug marker is the mouse destination and the yellow marker
+is the hand target.
 
 Run the automated gameplay gates with:
 

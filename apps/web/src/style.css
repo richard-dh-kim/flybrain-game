@@ -284,7 +284,7 @@ h1 {
 }
 
 .brain-region-label--network {
-  top: 10%;
+  top: 3%;
   left: 50%;
   transform: translateX(-50%);
 }

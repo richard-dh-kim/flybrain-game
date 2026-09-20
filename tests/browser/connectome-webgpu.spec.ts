@@ -67,6 +67,9 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   expect(activitySnapshot?.connectome.activitySampleCount).toBe(64);
   await expect(page.locator(".brain-node")).toHaveCount(64);
   await expect(page.locator("#brain-controller-badge")).toHaveText("FULL MALECNS · LIVE");
+  await expect(page.locator("#brain-region-sensory")).toBeVisible();
+  await expect(page.locator("#brain-region-network")).toHaveText("network");
+  await expect(page.locator("#brain-region-motor")).toBeVisible();
   await tapKey(page, "h");
   await page.waitForFunction(() => window.__flybrainGame?.snapshot().debugEnabled === true);
   const initialTick = snapshot?.tick ?? 0;

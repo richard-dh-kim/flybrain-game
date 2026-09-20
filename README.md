@@ -47,20 +47,23 @@ The production build regenerates the Rust WebAssembly package before Vite bundle
 npm run build
 ```
 
-The current gray box uses pointer or touch movement. A larger fly fills the
+The current build uses pointer or touch movement. A larger fly fills the
 background while two floating hands track from opposite sides and commit to a
-coordinated slap. It includes collision, a 30-second round, immediate restart,
-three scripted policy modes on keys 1–3, and the frozen learned GRU on key `4`.
-Run `npm run prepare:connectome-web` once when the ignored model assets are
-absent, then press `5` to load the full connectome through WebGPU. The status
-line shows loading, backend, adapter, model version, and fallback errors. Press
-`H` for velocity, target, collision, phase, cooldown, real GRU hidden activity
-in mode `4`, and 64 labeled samples from the 165,122-neuron MaleCNS state in
-mode `5`. Press `E` to export the current round's pointer path as a CSV for
-evaluation. Mode `5` needs a compatible dedicated or integrated GPU with
-WebGPU; an RTX card is not required. Mode `4` remains the lightweight CPU
-fallback for unsupported devices. In the `H` overlay, the green marker is the
-mouse destination and the yellow marker is the controller's hand target.
+coordinated slap. It includes collision, a 30-second round, and immediate
+restart. Run `npm run prepare:connectome-web` once when the ignored model assets
+are absent. A normal visit starts loading the full MaleCNS controller through
+WebGPU; the small GRU controls the hands during loading and automatically
+remains active on unsupported devices. A dedicated or integrated WebGPU device
+can run the full model, and an RTX card is not required.
+
+The always-visible brain below the playfield shows 64 live values. With the
+full controller active, those are 16 sensory, 32 whole-graph, and 16 motor
+samples from its 165,122-neuron state. The brain shape is anatomical, while the
+sample positions and faint links are illustrative. Press `H` to show technical
+timing, velocity, targets, collision shapes, phases, and cooldowns. Debug mode
+also enables controller keys `1` through `5` and `E` trajectory export. The
+green debug marker is the mouse destination and the yellow marker is the hand
+target.
 
 Run the automated gameplay gates with:
 

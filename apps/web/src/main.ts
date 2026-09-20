@@ -10,6 +10,7 @@ import {
   ConnectomePolicy,
   type ConnectomePolicySnapshot,
 } from "./connectomePolicy";
+import { FlyBrainVisualization } from "./brainVisualization";
 import "./style.css";
 
 const WIDTH = 960;
@@ -30,6 +31,7 @@ interface BrowserSnapshot {
   policyMode: PolicyMode;
   pointerActive: boolean;
   debugEnabled: boolean;
+  debugPanelVisible: boolean;
   simulationRateHz: number;
   renderRateFps: number;
   connectome: ConnectomePolicySnapshot;
@@ -54,7 +56,6 @@ class GrayboxScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container;
   private hands!: Phaser.GameObjects.Graphics;
   private debugGraphics!: Phaser.GameObjects.Graphics;
-  private brainActivityGraphics!: Phaser.GameObjects.Graphics;
   private simulation!: Simulation;
   private restartKey!: Phaser.Input.Keyboard.Key;
   private debugKey!: Phaser.Input.Keyboard.Key;
@@ -63,10 +64,10 @@ class GrayboxScene extends Phaser.Scene {
   private brainText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private debugText!: Phaser.GameObjects.Text;
-  private brainActivityText!: Phaser.GameObjects.Text;
   private connectomeStatusElement!: HTMLElement;
+  private brainVisualization!: FlyBrainVisualization;
   private policyKeys!: Record<PolicyMode, Phaser.Input.Keyboard.Key>;
-  private policyMode: PolicyMode = "predictive";
+  private policyMode: PolicyMode = "connectome";
   private learnedPolicy = new LearnedGruPolicy();
   private connectomePolicy = new ConnectomePolicy();
   private connectomeAction: PolicyAction | null = null;
@@ -91,7 +92,6 @@ class GrayboxScene extends Phaser.Scene {
     this.simulation = new Simulation();
     this.hands = this.add.graphics().setDepth(8);
     this.debugGraphics = this.add.graphics().setDepth(19);
-    this.brainActivityGraphics = this.add.graphics().setDepth(24);
     this.drawHands();
     this.player = this.createPlayer(this.simulation.player_x, this.simulation.player_y);
 
@@ -139,7 +139,7 @@ class GrayboxScene extends Phaser.Scene {
       .setDepth(20);
 
     this.brainText = this.add
-      .text(WIDTH - 24, 24, "CONTROLLER: PREDICTIVE [3]", {
+      .text(WIDTH - 24, 24, "FLY BRAIN: LOADING", {
         color: "#6b4033",
         fontFamily: "monospace",
         fontSize: "13px",
@@ -169,21 +169,11 @@ class GrayboxScene extends Phaser.Scene {
         lineSpacing: 3,
         padding: { x: 8, y: 6 },
       })
-      .setDepth(25);
-
-    this.brainActivityText = this.add
-      .text(WIDTH - 22, 62, "COMPUTED GRU ACTIVITY\n64 hidden units", {
-        align: "right",
-        color: "#fff1cf",
-        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-        fontSize: "11px",
-      })
-      .setOrigin(1, 0)
       .setDepth(25)
       .setVisible(false);
 
     this.add
-      .text(WIDTH - 18, HEIGHT - 16, "1–5 opponent  ·  R restart  ·  H debug  ·  E export", {
+      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  R RESTART  ·  H DETAILS", {
         color: "#d9b98d",
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
         fontSize: "11px",
@@ -196,7 +186,10 @@ class GrayboxScene extends Phaser.Scene {
       throw new Error("Connectome status element is missing.");
     }
     this.connectomeStatusElement = connectomeStatusElement;
+    this.brainVisualization = new FlyBrainVisualization();
+    this.connectomePolicy.start();
     this.syncConnectomeUi();
+    this.syncBrainVisualization();
 
     window.__flybrainGame = {
       snapshot: () => this.browserSnapshot(),
@@ -217,19 +210,21 @@ class GrayboxScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.debugKey)) {
       this.debugEnabled = !this.debugEnabled;
     }
-    if (Phaser.Input.Keyboard.JustDown(this.exportKey)) {
+    if (this.debugEnabled && Phaser.Input.Keyboard.JustDown(this.exportKey)) {
       this.downloadHumanTrajectory();
     }
-    if (Phaser.Input.Keyboard.JustDown(this.policyKeys.idle)) {
-      this.setPolicyMode("idle");
-    } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.chase)) {
-      this.setPolicyMode("chase");
-    } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.predictive)) {
-      this.setPolicyMode("predictive");
-    } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.learned)) {
-      this.setPolicyMode("learned");
-    } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.connectome)) {
-      this.setPolicyMode("connectome");
+    if (this.debugEnabled) {
+      if (Phaser.Input.Keyboard.JustDown(this.policyKeys.idle)) {
+        this.setPolicyMode("idle");
+      } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.chase)) {
+        this.setPolicyMode("chase");
+      } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.predictive)) {
+        this.setPolicyMode("predictive");
+      } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.learned)) {
+        this.setPolicyMode("learned");
+      } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.connectome)) {
+        this.setPolicyMode("connectome");
+      }
     }
 
     if (
@@ -239,7 +234,7 @@ class GrayboxScene extends Phaser.Scene {
       this.policyMode = "learned";
       this.learnedPolicy.reset();
       this.connectomeAction = null;
-      this.brainText.setText("CONTROLLER: GRU FALLBACK [4]");
+      this.brainText.setText("FLY BRAIN: COMPACT FALLBACK");
     }
     this.syncConnectomeUi();
 
@@ -250,18 +245,14 @@ class GrayboxScene extends Phaser.Scene {
     while (this.accumulatedTime >= fixedStepMilliseconds) {
       let action: PolicyAction;
       if (this.policyMode === "connectome") {
-        const connectomeAction = this.connectomePolicy.takeAction(this.simulation);
-        if (connectomeAction) {
-          this.connectomeAction = connectomeAction;
-        }
-        if (!this.connectomeAction) {
-          if (this.connectomePolicy.snapshot().pendingSteps === 0) {
-            this.connectomePolicy.request(this.simulation);
+        const connectome = this.connectomePolicy.snapshot();
+        if (connectome.status === "ready") {
+          const connectomeAction = this.connectomePolicy.takeAction(this.simulation);
+          if (connectomeAction) {
+            this.connectomeAction = connectomeAction;
           }
-          this.accumulatedTime = 0;
-          break;
         }
-        action = this.connectomeAction;
+        action = this.connectomeAction ?? this.learnedPolicy.decide(this.simulation);
       } else if (this.policyMode === "learned") {
         action = this.learnedPolicy.decide(this.simulation);
       } else {
@@ -303,6 +294,7 @@ class GrayboxScene extends Phaser.Scene {
     this.player.rotation = Phaser.Math.Clamp((this.player.x - previousX) / 24, -0.18, 0.18);
     this.drawHands();
     this.drawDebugOverlay();
+    this.syncBrainVisualization();
     this.timerText.setText((this.simulation.round_remaining_ticks / 60).toFixed(1));
 
     if (this.simulation.round_status === ROUND_HIT) {
@@ -324,15 +316,15 @@ class GrayboxScene extends Phaser.Scene {
       this.connectomePolicy.start();
     }
     const label = mode === "idle"
-      ? "IDLE [1]"
+      ? "DEV · IDLE [1]"
       : mode === "chase"
-        ? "CURRENT CHASE [2]"
+        ? "DEV · CURRENT CHASE [2]"
         : mode === "predictive"
-          ? "PREDICTIVE [3]"
+          ? "DEV · PREDICTIVE [3]"
           : mode === "learned"
-            ? "LEARNED GRU [4]"
-            : "FULL FLY BRAIN · LOADING [5]";
-    this.brainText.setText(`CONTROLLER: ${label}`);
+            ? "COMPACT GRU FALLBACK [4]"
+            : "FULL MALECNS · LOADING [5]";
+    this.brainText.setText(`FLY BRAIN: ${label}`);
     this.syncConnectomeUi();
   }
 
@@ -345,6 +337,7 @@ class GrayboxScene extends Phaser.Scene {
       policyMode: this.policyMode,
       pointerActive: this.pointerActive,
       debugEnabled: this.debugEnabled,
+      debugPanelVisible: this.debugText.visible,
       simulationRateHz: this.simulationRateHz,
       renderRateFps: this.game.loop.actualFps,
       connectome: this.connectomePolicy.snapshot(),
@@ -353,9 +346,10 @@ class GrayboxScene extends Phaser.Scene {
 
   private syncConnectomeUi(): void {
     const connectome = this.connectomePolicy.snapshot();
+    this.connectomeStatusElement.hidden = !this.debugEnabled;
     if (connectome.status === "idle") {
       this.connectomeStatusElement.textContent =
-        "Full connectome (WebGPU): press 5 to load · 148 MiB local / about 71 MiB compressed";
+        "Full connectome (WebGPU): idle · 148 MiB local / about 71 MiB compressed";
     } else if (connectome.status === "loading") {
       const loaded = connectome.progress?.loadedBytes ?? 0;
       const total = connectome.progress?.totalBytes ?? 0;
@@ -364,7 +358,7 @@ class GrayboxScene extends Phaser.Scene {
       this.connectomeStatusElement.textContent =
         `Full connectome: loading ${percent}% · verifying ${detail}`;
       if (this.policyMode === "connectome") {
-        this.brainText.setText(`CONTROLLER: FULL FLY BRAIN · LOADING ${percent}% [5]`);
+        this.brainText.setText(`FLY BRAIN: LOADING ${percent}%`);
       }
     } else if (connectome.status === "ready" && connectome.info) {
       const shortHash = connectome.info.packageSha256.slice(0, 8);
@@ -374,12 +368,45 @@ class GrayboxScene extends Phaser.Scene {
       this.connectomeStatusElement.textContent =
         `Full connectome: ready · WebGPU u16 · ${connectome.info.adapter} · v${connectome.info.formatVersion} ${shortHash} · ${timing} · sim ${this.simulationRateHz.toFixed(0)} Hz · render ${this.game.loop.actualFps.toFixed(0)} fps`;
       if (this.policyMode === "connectome") {
-        this.brainText.setText("CONTROLLER: FULL FLY BRAIN [5]");
+        this.brainText.setText("FLY BRAIN: FULL MALECNS");
       }
     } else {
       this.connectomeStatusElement.textContent =
         `Full connectome unavailable: ${connectome.error ?? "unknown error"} · using GRU [4]`;
     }
+  }
+
+  private syncBrainVisualization(): void {
+    const connectome = this.connectomePolicy.snapshot();
+    if (this.policyMode === "connectome") {
+      if (connectome.status === "ready") {
+        this.brainVisualization.update({
+          mode: "connectome",
+          activity: this.connectomePolicy.activity(),
+          step: connectome.activityStep,
+        });
+        return;
+      }
+      const loaded = connectome.progress?.loadedBytes ?? 0;
+      const total = connectome.progress?.totalBytes ?? 0;
+      this.brainVisualization.update({
+        mode: "loading",
+        activity: this.learnedPolicy.activity(),
+        loadPercent: total > 0 ? Math.floor((loaded / total) * 100) : undefined,
+      });
+      return;
+    }
+    if (this.policyMode === "learned") {
+      this.brainVisualization.update({
+        mode: "fallback",
+        activity: this.learnedPolicy.activity(),
+        fallbackReason: connectome.status === "error"
+          ? (connectome.error ?? "unknown error")
+          : undefined,
+      });
+      return;
+    }
+    this.brainVisualization.update({ mode: "development", activity: [] });
   }
 
   private resetRateSample(): void {
@@ -495,12 +522,12 @@ class GrayboxScene extends Phaser.Scene {
 
   private drawDebugOverlay(): void {
     this.debugGraphics.clear();
-    this.brainActivityGraphics.clear();
-    this.brainActivityText.setVisible(false);
     if (!this.debugEnabled) {
       this.debugText.setText("");
+      this.debugText.setVisible(false);
       return;
     }
+    this.debugText.setVisible(true);
 
     const playerX = this.simulation.player_x;
     const playerY = this.simulation.player_y;
@@ -554,56 +581,8 @@ class GrayboxScene extends Phaser.Scene {
       `player=(${playerX.toFixed(1)}, ${playerY.toFixed(1)}) vel=(${velocityX.toFixed(2)}, ${velocityY.toFixed(2)})`,
       `mouse=(${mouseX.toFixed(1)}, ${mouseY.toFixed(1)}) hand-target=(${targetX.toFixed(1)}, ${targetY.toFixed(1)}) strike=${Number(this.latestAction.strike)}`,
       ...handLines,
+      "dev: [1] idle  [2] chase  [3] predictive  [4] GRU  [5] MaleCNS  [E] export",
     ]);
-
-    if (this.policyMode === "learned" || this.policyMode === "connectome") {
-      this.drawBrainActivity();
-    }
-  }
-
-  private drawBrainActivity(): void {
-    const panelX = WIDTH - 166;
-    const panelY = 56;
-    const connectome = this.policyMode === "connectome"
-      ? this.connectomePolicy.snapshot()
-      : null;
-    const panelHeight = connectome ? 194 : 154;
-    const dotStartY = connectome ? panelY + 92 : panelY + 52;
-    this.brainActivityGraphics
-      .fillStyle(0x181310, 0.78)
-      .fillRoundedRect(panelX, panelY, 150, panelHeight, 8)
-      .lineStyle(1, 0xfff1cf, 0.35)
-      .strokeRoundedRect(panelX, panelY, 150, panelHeight, 8);
-    this.brainActivityText
-      .setText(connectome
-        ? [
-          "SAMPLED MALECNS ACTIVITY",
-          "64 of 165,122 neurons",
-          "16 sensory · 32 graph · 16 motor",
-          `brain step ${connectome.activityStep}`,
-        ]
-        : ["COMPUTED GRU ACTIVITY", "64 hidden units"])
-      .setVisible(true);
-
-    const activity = connectome
-      ? this.connectomePolicy.activity()
-      : this.learnedPolicy.activity();
-    if (connectome) {
-      this.brainActivityGraphics
-        .lineStyle(1, 0xfff1cf, 0.16)
-        .lineBetween(panelX + 14, dotStartY + 18, panelX + 136, dotStartY + 18)
-        .lineBetween(panelX + 14, dotStartY + 66, panelX + 136, dotStartY + 66);
-    }
-    for (let index = 0; index < activity.length; index += 1) {
-      const value = activity[index] ?? 0;
-      const column = index % 8;
-      const row = Math.floor(index / 8);
-      const color = value >= 0 ? 0xffbd59 : 0x5fc9ff;
-      const alpha = 0.18 + Math.min(1, Math.abs(value)) * 0.82;
-      this.brainActivityGraphics
-        .fillStyle(color, alpha)
-        .fillCircle(panelX + 22 + column * 16, dotStartY + row * 12, 4);
-    }
   }
 
   private createPlayer(x: number, y: number): Phaser.GameObjects.Container {

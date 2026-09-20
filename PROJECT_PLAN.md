@@ -13,7 +13,9 @@ Phase 5 has a checksummed exact float32 package and parity-tested Rust core;
 its first native CPU baseline misses the 60 Hz and public-download targets. A
 validated u16 package preserves the live result, WebGPU passes software-adapter correctness,
 and a real RTX browser run passes the 60 Hz gate at 5.0 ms median / 6.9 ms p95.
-Mode `5` loads it on demand and reports its backend, model identity, and state.
+The full controller is now the browser default, with a GRU covering its load
+and unsupported devices. Phase 6 has started with an always-visible, honestly
+labeled fly-brain activity display outside the playfield.
 
 This document records the current product direction. Where it conflicts with `PROJECT_HANDOFF.md`, this document takes precedence.
 
@@ -394,5 +396,5 @@ Active status and migration instructions are maintained in `CURRENT.md`.
 
 1. Add multiple seeds plus shuffled-topology and matched random-sparse controls before comparative claims.
 2. Collect human paths and DAgger-style examples from learned-policy failures.
-3. Recheck the on-demand full-connectome mode and sampled-activity overhead on hardware through a complete round, restart, mode switching, and fallback.
-4. Begin Phase 6 presentation work while preserving gameplay readability and honest visualization labels.
+3. Recheck the default full-connectome path after major presentation changes and test a missing-model fallback.
+4. Continue Phase 6 with readable wind-up, hit, miss, and fly-reaction animation, followed by original art and sound.

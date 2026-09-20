@@ -45,9 +45,6 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/");
   await page.waitForFunction(() => window.__flybrainGame !== undefined);
-  await page.keyboard.down("5");
-  await page.waitForTimeout(100);
-  await page.keyboard.up("5");
   await page.waitForFunction(
     () => window.__flybrainGame?.snapshot().connectome.status === "ready",
     undefined,
@@ -68,11 +65,10 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   );
   const activitySnapshot = await page.evaluate(() => window.__flybrainGame?.snapshot());
   expect(activitySnapshot?.connectome.activitySampleCount).toBe(64);
+  await expect(page.locator(".brain-node")).toHaveCount(64);
+  await expect(page.locator("#brain-controller-badge")).toHaveText("FULL MALECNS · LIVE");
   await tapKey(page, "h");
   await page.waitForFunction(() => window.__flybrainGame?.snapshot().debugEnabled === true);
-  if (process.env.FLYBRAIN_CONNECTOME_SCREENSHOT_PATH) {
-    await page.screenshot({ path: process.env.FLYBRAIN_CONNECTOME_SCREENSHOT_PATH });
-  }
   const initialTick = snapshot?.tick ?? 0;
   const initialPlayerX = snapshot?.playerX ?? 0;
   const canvas = page.locator("canvas");
@@ -100,6 +96,14 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
     undefined,
     { timeout: 5_000 },
   );
+  await tapKey(page, "h");
+  await page.waitForFunction(
+    () => window.__flybrainGame?.snapshot().debugPanelVisible === false,
+  );
+  await expect(page.locator("#connectome-status")).toBeHidden();
+  if (process.env.FLYBRAIN_CONNECTOME_SCREENSHOT_PATH) {
+    await page.screenshot({ path: process.env.FLYBRAIN_CONNECTOME_SCREENSHOT_PATH, fullPage: true });
+  }
 });
 
 async function tapKey(page: Page, key: string): Promise<void> {
@@ -119,6 +123,7 @@ declare global {
         tick: number;
         playerX: number;
         debugEnabled: boolean;
+        debugPanelVisible: boolean;
         simulationRateHz: number;
         connectome: {
           status: "idle" | "loading" | "ready" | "error";

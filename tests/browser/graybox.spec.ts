@@ -8,6 +8,7 @@ interface BrowserSnapshot {
   policyMode: "idle" | "chase" | "predictive" | "learned" | "connectome";
   pointerActive: boolean;
   debugEnabled: boolean;
+  debugPanelVisible: boolean;
   simulationRateHz: number;
   renderRateFps: number;
   connectome: {
@@ -21,6 +22,16 @@ interface BrowserSnapshot {
 test("loads, follows the pointer, and switches policy modes", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.locator("#fly-brain-visual")).toBeVisible();
+  await expect(page.locator(".brain-node")).toHaveCount(64);
+  expect((await snapshot(page)).connectome.status).not.toBe("idle");
+  expect((await snapshot(page)).debugPanelVisible).toBe(false);
+  await expect(page.locator("#connectome-status")).toBeHidden();
+
+  await tapGameKey(page, "h");
+  await expect.poll(async () => (await snapshot(page)).debugEnabled).toBe(true);
+  await expect.poll(async () => (await snapshot(page)).debugPanelVisible).toBe(true);
+  await expect(page.locator("#connectome-status")).toBeVisible();
   await tapGameKey(page, "1");
   await expect.poll(async () => (await snapshot(page)).policyMode).toBe("idle");
   const initial = await snapshot(page);
@@ -43,15 +54,18 @@ test("loads, follows the pointer, and switches policy modes", async ({ page }) =
   await expect.poll(async () => (await snapshot(page)).policyMode).toBe("learned");
 
   await tapGameKey(page, "h");
-  await expect.poll(async () => (await snapshot(page)).debugEnabled).toBe(true);
+  await expect.poll(async () => (await snapshot(page)).debugPanelVisible).toBe(false);
+  await expect(page.locator("#connectome-status")).toBeHidden();
   if (process.env.FLYBRAIN_SCREENSHOT_PATH) {
-    await page.screenshot({ path: process.env.FLYBRAIN_SCREENSHOT_PATH });
+    await page.screenshot({ path: process.env.FLYBRAIN_SCREENSHOT_PATH, fullPage: true });
   }
 });
 
 test("collision ends the round and restart is immediate", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible();
+  await tapGameKey(page, "h");
+  await tapGameKey(page, "3");
 
   await expect
     .poll(async () => (await snapshot(page)).roundStatus, { timeout: 5_000 })
@@ -70,6 +84,7 @@ test("collision ends the round and restart is immediate", async ({ page }) => {
 test("frozen learned GRU runs locally and completes a slap", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible();
+  await tapGameKey(page, "h");
   await tapGameKey(page, "4");
   await expect.poll(async () => (await snapshot(page)).policyMode).toBe("learned");
   await expect

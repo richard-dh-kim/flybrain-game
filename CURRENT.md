@@ -135,36 +135,41 @@ Completed:
   60 Hz budget. Its final outputs agree with the native reference within
   `3.4e-6`; local load, checksum verification, and upload took 621.5 ms. See
   `docs/experiments/phase-5-u16-candidate.md`.
-- Pressing `5` now starts an on-demand worker load and runs the full
-  165,122-neuron controller locally. The page shows verified loading progress,
-  backend, adapter, format version, and a short package hash. It waits for the
-  first recurrent decision before starting the round. An unsupported browser
-  or missing package reports the failure and returns to the small GRU on key
-  `4`.
-- Live mode `5` no longer pauses mouse movement when a brain result misses a
-  render frame. The simulation continues at its fixed rate using the latest
-  hand action, with at most one brain update in flight. This prevents a slow
-  frame from building a backlog and samples the newest game state when the
-  worker becomes available. Switching modes cancels work from the previous
-  recurrent epoch. The status line now
+- A normal visit now starts loading the full 165,122-neuron controller locally.
+  The compact GRU controls the hands during that load, so the round starts
+  immediately, and remains the automatic fallback on unsupported browsers or
+  when the model package is missing. The technical view shows verified loading
+  progress, backend, adapter, format version, and a short package hash.
+- Live full-controller inference no longer pauses mouse movement when a brain
+  result misses a render frame. The simulation continues at its fixed rate
+  using the latest hand action, with at most one brain update in flight. This
+  prevents a slow frame from building a backlog and samples the newest game
+  state when the worker becomes available. Switching development controllers
+  cancels work from the previous recurrent epoch. The technical status line
   reports brain median/p95 time, end-to-end p95, queue depth, simulation rate,
   and render rate. The `H` overlay labels the green mouse destination separately
   from the yellow hand target.
-- With mode `5` active, the `H` panel now displays 64 real values sampled from
-  the same GPU-resident recurrent state that produced the current hand action:
-  16 sensory neurons, 32 evenly spaced whole-graph neurons, and 16 motor
-  neurons. The panel shows its brain-step number and explicitly says that these
-  are 64 samples from 165,122 neurons. Mode `4` retains its separate 64-unit GRU
-  display.
+- An always-visible display below the playfield resembles the optic lobes,
+  central brain, and descending motor region of a fruit fly. With the full
+  controller active, its lights show 64 real values sampled from the same
+  GPU-resident recurrent state that produced the current hand action: 16
+  sensory neurons, 32 evenly spaced whole-graph neurons, and 16 motor neurons.
+  The anatomy, sample positions, and faint links are explicitly labeled as an
+  illustrative layout rather than physical neuron coordinates. During loading
+  or fallback, the same display honestly identifies and shows the compact GRU.
+- The full MaleCNS controller is the product default and the GRU is its
+  automatic fallback. `H` reveals technical statistics, hitboxes, targets, and
+  the development-only controller keys `1` through `5`; hiding it removes the
+  complete debug panel and its background.
 - Rust formatting, Clippy, workspace tests, Python replay test, WASM replay
   test, policy comparison, browser automation, TypeScript checking, and the
   production browser build pass in WSL2.
 
 A first connectome-constrained gameplay result and exact portable inference
-reference now exist. Browser mode `4` remains the 19,203-parameter conventional
-GRU; experimental mode `5` is the genuine packed MaleCNS controller. This is
-still a one-seed model, and the ignored 148 MiB local model assets must be
-prepared before mode `5` can load from a fresh checkout.
+reference now exist. The genuine packed MaleCNS controller is the browser
+default; the 19,203-parameter conventional GRU covers loading and unsupported
+devices. This is still a one-seed model, and the ignored 148 MiB local model
+assets must be prepared before the full brain can load from a fresh checkout.
 
 ## Local environment note
 
@@ -213,7 +218,7 @@ browser through `localhost`.
 
 ## Immediate next work
 
-Continue validation while advancing the Phase 5 runtime work:
+Continue model validation alongside Phase 6 presentation work:
 
 1. Replicate the conventional and MaleCNS runs across additional seeds, then
    add shuffled-topology and matched random-sparse controls before making any
@@ -221,8 +226,7 @@ Continue validation while advancing the Phase 5 runtime work:
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.
-3. Recheck mode `5` hardware timing with the 64-neuron activity sampler enabled,
-   including a full round, restart, switching between modes `4` and `5`, and an
-   intentionally missing model to confirm the visible GRU fallback.
-4. Begin Phase 6 presentation work after the visualization timing check, while
-   keeping hitboxes, telegraphs, and the sampled-activity label readable.
+3. Recheck full-brain hardware timing after major presentation changes and test
+   an intentionally missing model to confirm the visible GRU fallback.
+4. Continue Phase 6 with readable wind-up, hit, miss, and fly-reaction animation,
+   followed by original art and sound.

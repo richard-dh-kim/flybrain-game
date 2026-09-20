@@ -187,6 +187,13 @@ default; the 19,203-parameter conventional GRU covers loading and unsupported
 devices. This is still a one-seed model, and the ignored 148 MiB local model
 assets must be prepared before the full brain can load from a fresh checkout.
 
+The first seed-matched topology controls are also complete. All three conditions
+hit 33/33 validation paths, but measured MaleCNS was much more efficient than a
+degree-matched presynaptic shuffle while random sparse was slightly more
+efficient than measured. Seed 1701 therefore shows that wiring matters but does
+not show biological-topology superiority. Exact results and hashes are in
+`docs/experiments/phase-4-topology-controls.md` and its compact metrics JSON.
+
 ## Local environment note
 
 The Ubuntu environment currently lacks the system `build-essential`,
@@ -236,10 +243,9 @@ browser through `localhost`.
 
 Continue model validation alongside Phase 6 presentation work:
 
-1. Complete the seed-1701 shuffled-presynaptic and matched random-sparse runs
-   defined in `docs/experiments/phase-4-topology-controls.md`, then repeat all
-   three topology conditions across additional predeclared seeds before making
-   a biological-topology comparison.
+1. Repeat the measured, shuffled-presynaptic, and random-sparse conditions
+   at the predeclared seeds 3407 and 99017 before estimating a topology effect
+   or making a biological-topology comparison.
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.

@@ -1,7 +1,7 @@
 # Phase 4 MaleCNS topology controls
 
-Date: 2026-09-20
-Status: full-size smoke checks passed; matched training runs pending
+Date: 2026-09-21
+Status: seed-1701 measured, shuffled, and random-sparse comparison complete
 
 ## Question
 
@@ -44,6 +44,38 @@ This seed-matched result can reveal a useful difference, but it still cannot
 support a broad claim about biological topology. The full comparison needs the
 same three conditions repeated across additional predeclared seeds.
 
+## Results
+
+All three conditions completed the same 1,800 optimizer steps and processed the
+same 28,480 training rows. Lower pixel error, hit ticks, and misses are better.
+
+| Condition | Offline target RMSE | Sweep hits | Validation hits | Mean hit tick | Slaps | Misses |
+|---|---:|---:|---:|---:|---:|---:|
+| Measured MaleCNS | 56.76 px | 10/12 at 0.50 | 33/33 | 116.45 | 64 | 31 |
+| Shuffled presynaptic | 75.58 px | 9/12 at 0.20 | 33/33 | 248.21 | 133 | 100 |
+| Random sparse | 51.95 px | 11/12 at 0.50 | 33/33 | 108.18 | 63 | 30 |
+
+Measured wiring clearly outperformed the tightly degree-matched presynaptic
+shuffle on offline target error and closed-loop efficiency. The broader
+random-sparse control, however, slightly outperformed the measured graph on
+offline target error, the 12-episode sweep, and all three validation-efficiency
+measures. All three eventually hit every validation path.
+
+The honest seed-1701 conclusion is mixed: graph structure matters, but this run
+provides no evidence that the measured biological topology is better than
+matched random sparsity. Differences between measured and random are small in
+closed loop and could reverse with another initialization. At least several
+predeclared seeds are required before estimating a topology effect.
+
+The next replication seeds are fixed now, before those runs, as 3407 and 99017.
+Each replicate will use the same value for its interface and topology seed in
+all three conditions. Together with 1701, this creates an initial three-seed
+comparison; more seeds will be required if its variance remains large.
+
+The recurrent state remained important offline. Resetting state every tick
+raised target RMSE to 175.13 px for measured, 163.46 px for shuffled, and
+174.72 px for random sparse.
+
 ## Smoke evidence
 
 Both 165,122-neuron, 25,563,197-edge controls completed two CUDA optimizer steps
@@ -60,6 +92,11 @@ The shuffled checkpoint also passed a short closed-loop reconstruction check:
 evaluation regenerated the exact stored digest and produced valid decisions.
 The two-step smoke outputs are temporary diagnostics, not gameplay results.
 
+The compact, versioned result is
+`phase-4-topology-controls.metrics.json`. Generated histories, full metrics,
+and roughly 99 MB checkpoints remain ignored; their hashes are recorded in the
+compact result.
+
 ## Commands
 
 ```bash
@@ -67,4 +104,24 @@ npm run train:connectome-shuffled-pilot
 npm run train:connectome-shuffled-refine
 npm run train:connectome-random-pilot
 npm run train:connectome-random-refine
+
+PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py \
+  --checkpoint checkpoints/connectome-control-shuffled-v1-refine.pt \
+  --trained-only --suite evaluation --maximum-ticks 600 \
+  --thresholds 0.05 0.2 0.35 0.5 0.65 0.8 \
+  --out runs/connectome-control-shuffled-v1-refine/threshold-sweep.metrics.json
+PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py \
+  --checkpoint checkpoints/connectome-control-shuffled-v1-refine.pt \
+  --trained-only --suite validation --thresholds 0.2 \
+  --out runs/connectome-control-shuffled-v1-refine/live-validation-selected.metrics.json
+
+PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py \
+  --checkpoint checkpoints/connectome-control-random-v1-refine.pt \
+  --trained-only --suite evaluation --maximum-ticks 600 \
+  --thresholds 0.05 0.2 0.35 0.5 0.65 0.8 \
+  --out runs/connectome-control-random-v1-refine/threshold-sweep.metrics.json
+PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py \
+  --checkpoint checkpoints/connectome-control-random-v1-refine.pt \
+  --trained-only --suite validation --thresholds 0.5 \
+  --out runs/connectome-control-random-v1-refine/live-validation-selected.metrics.json
 ```

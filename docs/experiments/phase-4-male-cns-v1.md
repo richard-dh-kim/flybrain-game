@@ -105,6 +105,11 @@ motor readout. It does not show that the measured biological topology is better
 than another topology. Shuffled-topology, matched random-sparse, additional
 seed controls remain. Human paths and DAgger rounds also remain.
 
+The seed-1701 topology controls were subsequently completed in
+`phase-4-topology-controls.md`. The random-sparse condition slightly beat the
+measured graph in that seed, so the original biological-topology claim limit
+still applies and additional seeds remain necessary.
+
 The controller is not in the browser. Phase 5 must define a packed model,
 measure download and decompressed memory, implement Rust/WASM inference in a
 worker, and establish numerical and gameplay agreement before this checkpoint

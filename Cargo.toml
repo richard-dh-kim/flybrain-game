@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/game-core",
+    "crates/game-python",
     "crates/game-wasm",
 ]
 resolver = "3"

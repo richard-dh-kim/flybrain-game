@@ -21,36 +21,39 @@ The earlier 5060 Ti assumption in the handoff was incorrect and is superseded by
 
 | Tool | Observed value | Status |
 | --- | --- | --- |
-| Git | 2.53.0.windows.2 | Ready |
-| Node.js | 22.12.0 | Ready |
-| npm | 10.9.0 | Ready through `cmd.exe`; PowerShell script execution blocks `npm.ps1` |
-| Python | CPython 3.14.3 | Installed, but not the target ML interpreter |
-| PyTorch | Not installed | Pending |
-| Rust / Cargo | 1.98.1 / 1.98.1 | Ready |
+| Git | 2.43.0 | Ready in WSL2 |
+| Node.js | 22.13.0 | Ready in WSL2 |
+| npm | 10.9.2 | Ready in WSL2 |
+| Python | CPython 3.12.3 | Project target |
+| PyTorch | 2.8.0+cu128 | CUDA verified |
+| CUDA runtime reported by PyTorch | 12.8 | Ready |
+| Rust / Cargo | 1.98.1 / 1.98.1 | Ready in WSL2 |
 | wasm-bindgen CLI | 0.2.128 | Ready |
-| WSL2 | Ubuntu registered as a stopped WSL2 distribution; VM start currently returns `HCS_E_HYPERV_NOT_INSTALLED` | Restart/firmware check pending |
+| maturin | 1.15.0 | Ready in the project virtual environment |
+| WSL2 | Ubuntu 24.04.1, Linux 6.18.33.2-microsoft-standard-WSL2 | Ready |
 | Visual Studio C++ Build Tools | 17.14.37710.0 | Ready |
 | Microsoft Edge | 153.0.4234.32 | Recorded |
 | Google Chrome | 153.0.8010.48 | Recorded |
 | Phaser | 4.2.1 | Locked |
 | TypeScript | 7.0.2 | Locked |
 | Vite | 7.3.6 | Locked |
+| Playwright | 1.63.0, Chromium 153.0.8010.12 | Browser automation verified |
 
-Python 3.14 is intentionally not selected for the ML environment. The upstream reproduction documentation exercises Python 3.12 and PyTorch 2.8.0 with CUDA 12.8, so Phase 0 should first reproduce that environment rather than debug an avoidable version mismatch.
+PyTorch reports the RTX 4060 Ti as CUDA compute capability 8.9 with
+17,175,150,592 bytes of device memory. CUDA access is hidden inside the normal
+Codex command sandbox but succeeds for approved commands outside that sandbox
+and in the user's ordinary WSL terminal.
 
-## Provisional environment split
+## Canonical environment
 
-Use two cooperating environments unless the compatibility spike disproves the choice:
+WSL2 Ubuntu is the canonical environment for source, builds, tests, Python,
+CUDA, and generated artifacts. Windows remains the host for Chrome or Edge
+browser checks through `localhost`. This supersedes the provisional split in
+ADR 0001; see ADR 0003.
 
-- **Native Windows:** Node/Vite/Phaser, Rust, `wasm-bindgen`, browser testing, and ordinary game development.
-- **WSL2 Ubuntu 24.04:** Python 3.12, PyTorch/CUDA, upstream connectome tooling, training, and bounded benchmarks.
+## Phase 0 result
 
-This follows the upstream Linux-first runtime while keeping the browser workflow simple. The simulation contract and serialized trajectories must behave identically across the two environments. Large ML datasets and training runs should live in the Linux filesystem if `/mnt/c` I/O proves materially slower; only source, small fixtures, metrics, and export artifacts need to cross the boundary.
-
-## Phase 0 checks still required
-
-- Restart Windows, then verify that the registered Ubuntu distribution boots and can see the NVIDIA GPU. If the same hypervisor error remains, verify CPU virtualization in firmware.
-- Create the Python 3.12 environment and record exact locked dependencies.
-- Add the Python binding and compare its first deterministic replay with native Rust and WASM.
-- Reproduce a bounded upstream full-graph forward/backward test without beginning a long training run.
-- Record startup/compile time, forward/backward latency, peak VRAM, host RAM, and numerical checks.
+The environment, full-graph feasibility benchmark, Python binding, and exact
+native/WASM/Python replay checks are complete. See
+`docs/experiments/phase-0-connectome-feasibility.md` and
+`docs/experiments/phase-0-browser-rust-spike.md`.

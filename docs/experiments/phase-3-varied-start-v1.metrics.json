@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-20",
+  "seed": 1701,
+  "feature_schema_version": 1,
+  "train_rows": 8847,
+  "validation_rows": 2877,
+  "robustness_episodes": 204,
+  "train_dataset_sha256": "044732649dd231df3e16542ac7f3f8153f0ee07d365edaa6c1a13ad2067d7698",
+  "validation_dataset_sha256": "f2557faa53d023dfdad82760dd726ceac243b3e4493fcb6634993ebe41567229",
+  "robustness_dataset_sha256": "f32358f808c30eff39fd513a158a153dc31fc31852cda7ffd17f2a4b7e8dbc00",
+  "mlp": {
+    "parameters": 6531,
+    "epochs": 150,
+    "checkpoint_sha256": "36cbd16d48b70bb8a9ab2af807bfdb1589600c53673a21b8d68a39f130e1a993",
+    "target_rmse_pixels": 13.173028031268373,
+    "strike_precision": 0.45652173913043476,
+    "strike_recall": 0.5,
+    "live_hits": 200,
+    "reset_state_hits": 200,
+    "mean_hit_ticks": 82.27
+  },
+  "gru": {
+    "parameters": 19203,
+    "epochs": 120,
+    "checkpoint_sha256": "0a78ba3e635690f5457523bc261e06391ac689a9662eb1c0fb0a67a5bf9d0da5",
+    "target_rmse_pixels": 22.669464177304466,
+    "strike_precision": 0.8367346938775511,
+    "strike_recall": 0.9761904761904762,
+    "live_hits": 188,
+    "reset_state_hits": 0,
+    "mean_hit_ticks": 79.43617021276596
+  }
+}

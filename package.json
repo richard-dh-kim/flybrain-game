@@ -7,7 +7,28 @@
   ],
   "scripts": {
     "build": "npm run build --workspace=@flybrain/web",
+    "data:baseline": "PYTHONPATH=python .venv/bin/python scripts/generate-expert-dataset.py --split train --out data/behavior-cloning-v1/train.parquet --metrics runs/baseline-v1/train-dataset.metrics.json && PYTHONPATH=python .venv/bin/python scripts/generate-expert-dataset.py --split validation --out data/behavior-cloning-v1/validation.parquet --metrics runs/baseline-v1/validation-dataset.metrics.json",
     "dev": "npm run dev --workspace=@flybrain/web",
+    "export:gru": ".venv/bin/python scripts/export-baseline-json.py --checkpoint checkpoints/baseline-v1/gru-v1.pt --out apps/web/src/generated/gru-v1.json",
+    "evaluate:connectome": "PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py --checkpoint checkpoints/connectome-v1-refine.pt --suite validation --out runs/connectome-v1-refine/live-validation.metrics.json",
+    "evaluate:connectome-selected": "PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py --checkpoint checkpoints/connectome-v1-refine.pt --trained-only --initial-reference runs/connectome-v1-refine/live-validation.metrics.json --suite validation --thresholds 0.5 --out runs/connectome-v1-refine/live-validation-selected.metrics.json",
+    "evaluate:connectome-reset": "PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py --checkpoint checkpoints/connectome-v1-refine.pt --trained-only --reset-state --suite validation --thresholds 0.5 --out runs/connectome-v1-refine/live-validation-reset.metrics.json",
+    "sweep:connectome-thresholds": "PYTHONPATH=python .venv/bin/python scripts/evaluate-connectome.py --checkpoint checkpoints/connectome-v1-refine.pt --trained-only --suite evaluation --maximum-ticks 600 --thresholds 0.05 0.2 0.35 0.5 0.65 0.8 --out runs/connectome-v1-refine/threshold-sweep.metrics.json",
+    "select:connectome": "PYTHONPATH=python .venv/bin/python scripts/select-connectome-checkpoint.py --source checkpoints/connectome-v1-refine.pt --sweep runs/connectome-v1-refine/threshold-sweep.metrics.json --validation runs/connectome-v1-refine/live-validation-selected.metrics.json --threshold 0.5 --out checkpoints/connectome-v1-selected.pt",
+    "test:browser": "npm run build:wasm --workspace=@flybrain/web && LD_LIBRARY_PATH=.tools/chromium-libs/usr/lib/x86_64-linux-gnu PLAYWRIGHT_BROWSERS_PATH=.tools/ms-playwright playwright test",
+    "test:expert": "PYTHONPATH=python .venv/bin/python scripts/evaluate-expert.py",
+    "test:gru-parity": "node scripts/check-gru-parity.mjs",
+    "test:python": "PYTHONPATH=python .venv/bin/python -m unittest discover -s crates/game-python/tests -v",
+    "test:policies": "node scripts/compare-scripted-policies.mjs",
+    "test:wasm-parity": "node scripts/check-wasm-parity.mjs",
+    "train:gru": "PYTHONPATH=python .venv/bin/python scripts/train-baseline.py --model gru --train-data data/behavior-cloning-v1/train.parquet --validation-data data/behavior-cloning-v1/validation.parquet --checkpoint checkpoints/baseline-v1/gru-v1.pt --metrics runs/baseline-v1/gru-v1.metrics.json --epochs 120 --live-suite robustness",
+    "train:connectome-smoke": "PYTHONPATH=python .venv/bin/python scripts/train-connectome.py --label smoke --steps 12 --seconds 180 --window 4 --out runs/connectome-v1-smoke --checkpoint checkpoints/connectome-v1-smoke.pt",
+    "train:connectome-pilot": "PYTHONPATH=python .venv/bin/python scripts/train-connectome.py --label pilot --steps 600 --seconds 600 --batch 4 --window 4 --full-validation --out runs/connectome-v1-pilot --checkpoint checkpoints/connectome-v1-pilot.pt",
+    "train:connectome-refine": "PYTHONPATH=python .venv/bin/python scripts/train-connectome.py --label refinement --resume checkpoints/connectome-v1-pilot.pt --steps 1200 --seconds 900 --batch 4 --window 4 --learning-rate 0.01 --full-validation --out runs/connectome-v1-refine --checkpoint checkpoints/connectome-v1-refine.pt",
+    "train:mlp": "PYTHONPATH=python .venv/bin/python scripts/train-baseline.py --model mlp --train-data data/behavior-cloning-v1/train.parquet --validation-data data/behavior-cloning-v1/validation.parquet --checkpoint checkpoints/baseline-v1/mlp-v1.pt --metrics runs/baseline-v1/mlp-v1.metrics.json --epochs 150 --live-suite robustness",
     "typecheck": "npm run typecheck --workspace=@flybrain/web"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }

@@ -1,18 +1,14 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "..");
 const executableSuffix = process.platform === "win32" ? ".exe" : "";
-const cargo = process.platform === "win32"
-  ? join(homedir(), ".cargo", "bin", `cargo${executableSuffix}`)
-  : "cargo";
-const wasmBindgen = process.platform === "win32"
-  ? join(homedir(), ".cargo", "bin", `wasm-bindgen${executableSuffix}`)
-  : "wasm-bindgen";
+const cargo = userToolOrPath(`cargo${executableSuffix}`);
+const wasmBindgen = userToolOrPath(`wasm-bindgen${executableSuffix}`);
 const wasmInput = join(
   projectRoot,
   "target",
@@ -24,6 +20,16 @@ const outputDirectory = join(projectRoot, "apps", "web", "src", "generated", "wa
 
 mkdirSync(outputDirectory, { recursive: true });
 
+const cargoEnvironment = { ...process.env };
+const localLinker = join(projectRoot, ".tools", "zig-cc");
+if (
+  process.platform === "linux"
+  && !executableIsOnPath("cc")
+  && existsSync(localLinker)
+) {
+  cargoEnvironment.CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER = localLinker;
+}
+
 run(cargo, [
   "build",
   "--release",
@@ -31,7 +37,7 @@ run(cargo, [
   "flybrain-game-wasm",
   "--target",
   "wasm32-unknown-unknown",
-]);
+], cargoEnvironment);
 run(wasmBindgen, [
   wasmInput,
   "--target",
@@ -42,9 +48,21 @@ run(wasmBindgen, [
   "flybrain_game",
 ]);
 
-function run(command, arguments_) {
+function userToolOrPath(name) {
+  const userTool = join(homedir(), ".cargo", "bin", name);
+  return existsSync(userTool) ? userTool : name;
+}
+
+function executableIsOnPath(name) {
+  return (process.env.PATH ?? "")
+    .split(delimiter)
+    .some((directory) => existsSync(join(directory, name)));
+}
+
+function run(command, arguments_, environment = process.env) {
   const result = spawnSync(command, arguments_, {
     cwd: projectRoot,
+    env: environment,
     shell: false,
     stdio: "inherit",
   });

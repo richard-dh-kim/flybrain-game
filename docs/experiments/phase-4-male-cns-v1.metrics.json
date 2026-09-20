@@ -1,0 +1,72 @@
+{
+  "date": "2026-09-20",
+  "status": "single_seed_gate_passed",
+  "seed": 1701,
+  "graph": {
+    "dataset": "male-cns:v1.0",
+    "license": "CC-BY-4.0",
+    "selection": "annotations.status == 'Traced'",
+    "sha256": "eff4093bf53c4dd17d7ee4f2f838f6ae5ede70570f9a91317dd8824cca5c771d",
+    "neurons": 165122,
+    "edges": 25563197,
+    "sensory_neurons": 6365,
+    "motor_neurons": 708
+  },
+  "model": {
+    "feature_schema_version": 1,
+    "feature_count": 33,
+    "trainable_parameters": 25730446,
+    "graph_updates_per_tick": 1,
+    "tbptt_window": 4,
+    "checkpoint_sha256": "f795652899f3df47f43eda72bf6de4bf3f43337a28865723762b450e0f91daa7",
+    "source_checkpoint_sha256": "26f1045e748c7de64d0988a2e88e80ab65182ae6d26bbd563c520ef540446907",
+    "strike_threshold": 0.5
+  },
+  "data": {
+    "train_rows": 8847,
+    "validation_rows": 2877,
+    "train_sha256": "044732649dd231df3e16542ac7f3f8153f0ee07d365edaa6c1a13ad2067d7698",
+    "validation_sha256": "f2557faa53d023dfdad82760dd726ceac243b3e4493fcb6634993ebe41567229"
+  },
+  "training": {
+    "optimizer_steps": 1800,
+    "processed_rows": 28480,
+    "approximate_epochs": 3.219170340228326,
+    "training_seconds": 827.7907110509987,
+    "peak_gpu_allocated_gb": 3.453615104,
+    "peak_gpu_reserved_gb": 3.745513472,
+    "topology_unchanged": true,
+    "finite_nonzero_parameter_group_gradients": true,
+    "pilot_metrics_sha256": "eb5c546d2e3ae34601b54a1837d7759df677cfc2e0a905be269e23b5a76cdf1e",
+    "refinement_metrics_sha256": "69b1aeeef288739e962c36bb4ae0dbbd50431da5fe3f9f94f7e968dfe0566a4b"
+  },
+  "offline_validation": {
+    "carried_target_rmse_pixels": 56.76096716605825,
+    "reset_target_rmse_pixels": 175.13125472192155,
+    "strike_precision": 0.4090909090909091,
+    "strike_recall": 0.21428571428571427
+  },
+  "threshold_selection": {
+    "suite_episodes": 12,
+    "maximum_ticks": 600,
+    "selected_hits": 10,
+    "selected_threshold": 0.5,
+    "metrics_sha256": "c3cd195e71bc07dbe18100a3df6f9eef67f1855c2bd8fa5c3e127a0e76d1450f"
+  },
+  "live_validation": {
+    "episodes": 33,
+    "trained_hits": 33,
+    "initial_hits": 0,
+    "reset_state_hits": 0,
+    "trained_mean_hit_ticks": 116.45454545454545,
+    "trained_accepted_strikes": 64,
+    "trained_completed_misses": 31,
+    "inference_calls": 3843,
+    "inference_median_ms": 5.401283007813618,
+    "inference_p95_ms": 6.058853489230387,
+    "selected_metrics_sha256": "dca84697e6ca9c4cb11a5d9b273dd8bcf541b8a5646c2a16fa72cca88620d661",
+    "initial_reference_sha256": "9558b7593c83a754b995f399830051f01c5d7c444790dc89f562f55b27c3dc59",
+    "reset_state_metrics_sha256": "0aebd35622b465200f9544c773f198d49eec7441effc016de4e0a70d5222352b"
+  },
+  "claim_limit": "One seed and no shuffled-topology or matched random-sparse control; no biological-topology superiority claim."
+}

@@ -1,8 +1,14 @@
 # FlyBrain Swatter: Current Project Plan
 
-Last updated: 2026-09-18
+Last updated: 2026-09-20
 
-Status: Phase 0 in progress. No game, trained controller, or performance result described below exists yet.
+Status: Phases 0 and 1 passed, and the Phase 2 technical gate is complete.
+Versioned data, deterministic curricula, an expert, Parquet logging, and visual
+replay feed the Phase 3 MLP and GRU baselines. Varied-start controls are
+complete for one seed, and the frozen earlier GRU runs in the browser. The
+first Phase 4 full MaleCNS checkpoint beats its untrained initialization on 33
+held-out varied-start trajectories. Multi-seed and topology controls remain,
+and the MaleCNS controller has not been exported to the browser.
 
 This document records the current product direction. Where it conflicts with `PROJECT_HANDOFF.md`, this document takes precedence.
 
@@ -10,7 +16,7 @@ This document records the current product direction. Where it conflicts with `PR
 
 Build one polished browser game before considering a collection of minigames.
 
-The player is a tiny winged human. A giant cartoon fruit fly sits behind a table, facing the player, and reaches into the play space with one visible pair of articulated forelegs/hands. A MaleCNS-constrained recurrent controller will eventually decide where and when those hands strike.
+The player is a tiny winged human. A giant cartoon fruit fly fills the background behind a table while two oversized cartoon hands track the player from opposite sides. A MaleCNS-constrained recurrent controller will eventually decide where and when those hands strike together.
 
 The immediate hook is:
 
@@ -22,12 +28,12 @@ The immediate hook is:
 
 Use layered 2D presentation with a false sense of depth:
 
-- Giant fly centered in the background, viewed from the front.
+- Giant fly centered in the background, viewed from the front, and large enough to fill most of the frame.
 - Table spanning the bottom of the frame.
-- One pair of forelegs anchored near the fly and reaching toward the foreground.
+- Two floating hands entering from opposite sides of the play space; limb and leg segments are not rendered in the MVP.
 - Tiny winged human moving within a bounded airspace above the table.
 - Layered shadows, scale changes, impact frames, screen shake, and squash-and-stretch to suggest depth.
-- Analytic two-link inverse kinematics for each foreleg rather than rigid-body simulation.
+- Deterministic tracking and committed slap paths rather than rigid-body simulation.
 
 The visual target is an original hand-drawn cartoon with the immediacy of an old browser/Flash game: bold silhouettes, inked outlines, limited palette, slightly imperfect animation, exaggerated wind-ups, and fast restarts. It may draw from broad rubber-hose-animation and early web-game conventions, but it should not reproduce another game's characters or exact visual identity.
 
@@ -39,19 +45,19 @@ Render the scene in these conceptual layers:
 
 1. Background wall, props, and subtle ambient animation.
 2. Giant fly head and torso behind the table.
-3. Table surface and the fly's resting limb segments.
-4. Active limb segments and hand/palm hit shapes.
+3. Table surface and the two tracking hands.
+4. Active hand/palm hit shapes and slap telegraph.
 5. Player character and wing trail.
 6. Impact effects, shadows, telegraphs, and HUD.
 
-The background fly should react visibly to the controller: eyes tracking the player, a short anticipatory lean, arm wind-up, strike, frustration after a miss, and recovery. These animations communicate model intent without pretending that every cosmetic motion comes from the neural network.
+The background fly should react visibly to the controller: eyes tracking the player, a short anticipatory lean, hand wind-up, slap, frustration after a miss, and recovery. These animations communicate model intent without pretending that every cosmetic motion comes from the neural network.
 
 ## Initial game loop
 
 - A round begins after a short countdown.
 - The player moves inside a fixed rectangular flight area.
-- The fly tracks the player and periodically commits one foreleg to a predicted interception point.
-- A committed strike has a readable wind-up and limited ability to redirect.
+- Two hands track the player from opposite sides and periodically commit to a predicted interception point.
+- A committed slap has a readable outward wind-up; both hands then close on the frozen target together.
 - Contact during the active strike ends the round.
 - A miss incurs a visible recovery and cooldown.
 - The score is survival time.
@@ -62,7 +68,8 @@ One-hit rounds keep the premise legible and produce a clean time-to-first-hit me
 
 ## Movement and input
 
-Support mouse and keyboard through one shared movement interface.
+Use pointer movement for the player. Keyboard shortcuts remain for policy
+selection, debug views, and restart, but do not move the player.
 
 ### Mouse and touch
 
@@ -71,18 +78,13 @@ Support mouse and keyboard through one shared movement interface.
 - This preserves intuitive mouse control without allowing teleportation or infinite-speed cursor movement.
 - Touch uses the same desired-destination model.
 
-### Keyboard
-
-- WASD and arrow keys produce a normalized desired movement vector.
-- Keyboard and pointer control share the same acceleration, drag, and maximum-speed constraints.
-
-Start with mouse as the default because it suits a short browser game. Keep WASD available for accessibility and for players who prefer direct directional control.
-
-The player should be faster than either hand in instantaneous movement. The hand competes through reach, prediction, timing, and coordinated attacks rather than by simply exceeding the player's top speed.
+The player should be faster than either hand in instantaneous movement. The
+hands compete through prediction, commitment, timing, and a coordinated slap
+rather than by simply exceeding the player's top speed.
 
 ## Hand mechanics
 
-Each foreleg uses a small explicit state machine:
+Each hand uses the same synchronized state machine:
 
 ```text
 rest -> track -> wind_up -> strike -> impact/hold -> recover -> rest
@@ -90,11 +92,11 @@ rest -> track -> wind_up -> strike -> impact/hold -> recover -> rest
 
 Initial behavior:
 
-- Both forelegs are visible.
-- Only one foreleg attacks at a time in the MVP.
-- A deterministic selector chooses an available hand based on reach and cooldown.
-- The second hand supports the composition and telegraphing but does not independently attack yet.
-- The controller chooses a target and strike intent; deterministic mechanics choose the hand and execute the motion.
+- Both hands are always visible and track opposite sides of the policy target.
+- A strike starts both hands together.
+- During wind-up the hands separate, then close on one frozen target during the slap.
+- Both palms use the same active contact window and synchronized cooldown.
+- The controller chooses a target and strike intent; deterministic mechanics own symmetric placement and the complete slap path.
 
 Candidate tuning ranges, to be validated rather than treated as final:
 
@@ -119,10 +121,8 @@ The first structured observation should include:
 player position and velocity
 player acceleration or recent motion summary
 left and right hand positions and velocities
-foreleg joint angles
 attack phase and time remaining
 cooldowns
-reachable-workspace information
 normalized round time
 ```
 
@@ -136,7 +136,8 @@ target_y
 strike_probability
 ```
 
-The game code, not the neural network, owns hand selection, inverse kinematics, hitboxes, cooldown enforcement, and animation. A later experiment may add hand selection as a fourth output.
+The game code, not the neural network, owns symmetric hand placement, slap
+paths, hitboxes, cooldown enforcement, and animation.
 
 ### Determinism
 
@@ -171,7 +172,7 @@ flybrain-game/
   apps/
     web/                 TypeScript + Phaser browser application
   crates/
-    game-core/           deterministic game state, movement, IK, collision
+    game-core/           deterministic game state, movement, hand paths, collision
     game-wasm/           wasm-bindgen browser boundary
     game-python/         PyO3/maturin training boundary
     brain-runtime/       future packed sparse inference runtime
@@ -204,7 +205,7 @@ gray-box deterministic game
     -> public deployment
 ```
 
-The model requires a working environment and an expert capable of producing labels. Conversely, expensive art should wait until player speed, reach, timing, hitboxes, and screen composition are stable.
+The model requires a working environment and an expert capable of producing labels. Conversely, expensive art should wait until player speed, hand spacing, timing, hitboxes, and screen composition are stable.
 
 ## Implementation phases and gates
 
@@ -232,20 +233,20 @@ Use circles, capsules, lines, and placeholder sprites only.
 
 Deliverables:
 
-- Player acceleration, speed cap, bounds, mouse input, and WASD input.
-- Front-facing fly/table composition with two articulated placeholder forelegs.
-- Two-link IK and reachable-workspace clamping.
-- One attacking hand with wind-up, strike, hitbox, recovery, and cooldown.
+- Player acceleration, speed cap, bounds, pointer input, and touch input.
+- Large front-facing fly/table composition with two hand-only attackers.
+- Opposed hand tracking and one synchronized two-hand slap.
+- Wind-up, strike, hitbox, impact hold, recovery, and cooldown.
 - One-hit round, timer, restart, fixed seeds, and input replay.
 - Scripted policies: idle, chase-current-position, and simple predictive intercept.
-- Debug overlays for velocity, predicted target, reach, collision shapes, and state transitions.
+- Debug overlays for velocity, predicted target, collision shapes, and state transitions.
 
 Gate:
 
 - A new player can understand the objective without explanation after seeing one round.
 - The predictive expert clearly outperforms current-position chasing on turning trajectories.
 - The game replays deterministically in native and browser builds.
-- Mouse and keyboard players are both constrained by the same motion limits.
+- Pointer and touch input use the same constrained destination movement.
 
 ### Phase 2: mechanics validation and expert
 
@@ -320,11 +321,11 @@ Gate:
 Deliverables:
 
 - Original giant-fly character, winged-human character, table, background, and UI.
-- Foreleg sprites that preserve the same IK anchors and collision geometry as the prototype.
+- Hand sprites that preserve the prototype's palm collision geometry and synchronized slap path.
 - Wind-up, strike, hit, miss, frustration, idle, eye-tracking, and restart animations.
 - Limited palette, inked outlines, subtle paper/grain treatment, and intentionally snappy timing.
 - Original sound effects and short looping music appropriate to an early browser-game feel.
-- Accessibility options: reduced shake, mute, high-contrast hitbox/telegraph mode, keyboard remapping where practical.
+- Accessibility options: reduced shake, mute, high-contrast hitbox/telegraph mode, and practical shortcut remapping.
 
 Gate:
 
@@ -356,7 +357,7 @@ Start tests with the simulation rather than the rendering:
 
 - Player speed and acceleration limits.
 - Boundary behavior.
-- IK reachability and joint continuity.
+- Opposed hand tracking and synchronized phase transitions.
 - Hand phase transition timing.
 - Collision only during the active strike window.
 - Cooldown enforcement.
@@ -366,7 +367,7 @@ Start tests with the simulation rather than the rendering:
 - Checkpoint/model-format validation and checksums.
 - Numerical agreement between PyTorch and browser inference within declared tolerances.
 
-Use browser automation for loading, starting, playing a scripted input trace, restarting, switching input modes, and exercising inference fallbacks.
+Use browser automation for loading, starting, following pointer input, restarting, switching policies, and exercising inference fallbacks.
 
 ## Deferred features
 
@@ -386,9 +387,7 @@ These are expansion paths, not MVP requirements.
 
 Active status and migration instructions are maintained in `CURRENT.md`.
 
-1. Move the canonical checkout to the WSL2 Ubuntu filesystem after WSL boot and GPU access are verified.
-2. Create the Python 3.12/PyTorch/CUDA environment and record exact locked dependencies.
-3. Review the upstream licenses and reproduce the bounded full-graph benchmark.
-4. Add the PyO3/maturin boundary and prove one shared Rust movement sequence through native, WASM, and Python.
-5. Build the next gray-box slice: shared mouse/keyboard movement and one articulated attacking foreleg with IK, collision, and a complete attack state machine.
-6. Add the simple predictive expert before producing final art or training the connectome.
+1. Add multiple seeds plus shuffled-topology and matched random-sparse controls before comparative claims.
+2. Collect human paths and DAgger-style examples from learned-policy failures.
+3. Define the Phase 5 packed model format and benchmark Rust/WASM inference against the PyTorch checkpoint.
+4. Add sampled, synchronized MaleCNS activity to the browser visualization only after numerical parity passes.

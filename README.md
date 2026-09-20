@@ -17,27 +17,53 @@ No biological-performance or speed claim should be treated as a result until it 
 
 ## Current status
 
-Phase 0 is in progress. The repository, native Rust toolchain, first deterministic simulation step, Rust-to-WASM boundary, and gray-box browser shell are working. The Python boundary and bounded connectome feasibility benchmark remain. The detailed product and implementation plan is in [PROJECT_PLAN.md](PROJECT_PLAN.md). Historical research and earlier decisions are preserved in [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
+Phase 0 and the playable Phase 1 gray box are complete. The full retained
+MaleCNS graph passed a bounded forward/backward test on the local RTX 4060 Ti.
+Phase 2 now has versioned simulation observations and actions, deterministic
+curricula, a timing-aware expert, Parquet logging, and visual replay. The first
+Phase 3 MLP and GRU controllers are trained, and the GRU runs locally in the
+browser. Phase 4 now has a first full MaleCNS controller: its fixed measured
+topology carries 165,122 neuron states and produces valid closed-loop actions,
+with 33/33 hits on the varied-start validation suite versus 0/33 for its
+untrained initialization. It remains a one-seed result and is not exported to
+the browser yet. See [CURRENT.md](CURRENT.md) for the exact handoff.
 
 ## Run the current prototype
 
-```powershell
-cmd.exe /d /c npm install
-cmd.exe /d /c npm run dev
+```bash
+npm ci
+npm run dev
 ```
 
 The production build regenerates the Rust WebAssembly package before Vite bundles the site:
 
-```powershell
-cmd.exe /d /c npm run build
+```bash
+npm run build
 ```
 
-The current gray box supports WASD and arrow-key movement. Mouse movement, the articulated attacking hand, collision, and the predictive opponent are the next gameplay slice.
+The current gray box uses pointer or touch movement. A larger fly fills the
+background while two floating hands track from opposite sides and commit to a
+coordinated slap. It includes collision, a 30-second round, immediate restart,
+three scripted policy modes on keys 1–3, and the frozen learned GRU on key `4`.
+Press `H` for velocity, target, collision, phase, cooldown, and real GRU hidden
+activity. Press `E` to export the current round's pointer path as a CSV for
+evaluation.
+
+Run the automated gameplay gates with:
+
+```bash
+npm run test:wasm-parity
+npm run test:policies
+npm run test:expert
+npm run test:gru-parity
+npm run test:python
+npm run test:browser
+```
 
 ## Intended stack
 
 - TypeScript, Vite, and Phaser for the browser presentation.
-- Rust for deterministic simulation, collision, inverse kinematics, replay, and portable inference support.
+- Rust for deterministic simulation, hand paths, collision, replay, and portable inference support.
 - WebAssembly plus a Web Worker for browser-side execution.
 - Python, PyTorch, and CUDA for training and evaluation.
 - `wasm-bindgen` and PyO3/maturin so browser and training code share the same simulation contract.

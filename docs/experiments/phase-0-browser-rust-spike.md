@@ -2,7 +2,7 @@
 
 Date: 2026-09-18
 
-Status: Passed for native Rust and browser compilation. Python parity remains pending.
+Status: Passed for native Rust, browser compilation, and Python parity.
 
 ## Scope
 
@@ -46,8 +46,10 @@ The JavaScript bundle is dominated by the current full Phaser import. This is ac
 - The player cannot leave world bounds.
 - The player decelerates exactly to rest when input stops.
 
-## Remaining Phase 0 gate
+## Completed follow-up
 
-- Add PyO3/maturin against the Python 3.12 training environment.
-- Run the same golden input fixture through native Rust, WASM, and Python and compare exact state.
-- Reproduce the bounded upstream full-graph forward/backward workload and record timing and memory.
+- Added PyO3/maturin against the Python 3.12 training environment.
+- Ran the same 387-tick golden movement fixture through native Rust, WASM, and
+  Python with exact integer checkpoint agreement.
+- Reproduced the bounded upstream full-graph forward/backward workload and
+  recorded timing and memory in `phase-0-connectome-feasibility.md`.

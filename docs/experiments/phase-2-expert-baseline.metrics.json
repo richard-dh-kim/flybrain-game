@@ -1,0 +1,150 @@
+{
+  "dataset_schema_version": 1,
+  "trajectory_schema_version": 1,
+  "observation_schema_version": 1,
+  "action_schema_version": 1,
+  "episodes": 12,
+  "hits": 12,
+  "hit_rate": 1.0,
+  "simple_episodes": 9,
+  "simple_hits": 9,
+  "simple_hit_rate": 1.0,
+  "mean_hit_ticks": 79.66666666666667,
+  "accepted_strikes": 14,
+  "completed_misses": 2,
+  "cooldown_violations": 0,
+  "episodes_detail": [
+    {
+      "episode_id": 0,
+      "trajectory": "stationary-center",
+      "status": 1,
+      "elapsed_ticks": 68,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -7450.141445244488,
+      "hit": true
+    },
+    {
+      "episode_id": 1,
+      "trajectory": "constant-east",
+      "status": 1,
+      "elapsed_ticks": 67,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -8212.182406501786,
+      "hit": true
+    },
+    {
+      "episode_id": 2,
+      "trajectory": "constant-west",
+      "status": 1,
+      "elapsed_ticks": 67,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -8212.182406501786,
+      "hit": true
+    },
+    {
+      "episode_id": 3,
+      "trajectory": "constant-north",
+      "status": 1,
+      "elapsed_ticks": 68,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -7899.0,
+      "hit": true
+    },
+    {
+      "episode_id": 4,
+      "trajectory": "constant-south",
+      "status": 1,
+      "elapsed_ticks": 68,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -7899.0,
+      "hit": true
+    },
+    {
+      "episode_id": 5,
+      "trajectory": "turn-cardinal-45",
+      "status": 1,
+      "elapsed_ticks": 68,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -13838.65394973689,
+      "hit": true
+    },
+    {
+      "episode_id": 6,
+      "trajectory": "turn-cardinal-60",
+      "status": 1,
+      "elapsed_ticks": 68,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -11278.0,
+      "hit": true
+    },
+    {
+      "episode_id": 7,
+      "trajectory": "turn-diagonal-45",
+      "status": 1,
+      "elapsed_ticks": 66,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -30212.369769331406,
+      "hit": true
+    },
+    {
+      "episode_id": 8,
+      "trajectory": "turn-diagonal-60",
+      "status": 1,
+      "elapsed_ticks": 67,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -1256.6001911313142,
+      "hit": true
+    },
+    {
+      "episode_id": 9,
+      "trajectory": "random-waypoint-1701",
+      "status": 1,
+      "elapsed_ticks": 141,
+      "accepted_strikes": 2,
+      "completed_misses": 1,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -10259.025955001278,
+      "hit": true
+    },
+    {
+      "episode_id": 10,
+      "trajectory": "random-waypoint-99017",
+      "status": 1,
+      "elapsed_ticks": 66,
+      "accepted_strikes": 1,
+      "completed_misses": 0,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -15844.361418248842,
+      "hit": true
+    },
+    {
+      "episode_id": 11,
+      "trajectory": "evasive",
+      "status": 1,
+      "elapsed_ticks": 142,
+      "accepted_strikes": 2,
+      "completed_misses": 1,
+      "cooldown_violations": 0,
+      "closest_edge_gap_units": -18348.4422383531,
+      "hit": true
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+[package]
+name = "flybrain-connectome-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "WebAssembly boundary for the packed FlyBrain connectome runtime"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+flybrain-connectome-runtime = { path = "../connectome-runtime" }
+wasm-bindgen = "0.2"
+
+[lints]
+workspace = true

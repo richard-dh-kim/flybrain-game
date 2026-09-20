@@ -29,23 +29,38 @@ export class LearnedGruPolicy {
   decide(simulation: Simulation): PolicyAction {
     const features = observationFeatures(simulation);
     const { output } = this.runtime.step(features);
-    const targetX = denormalize(sigmoid(value(output, 0)), FLIGHT_MIN_X_UNITS, FLIGHT_MAX_X_UNITS);
-    const targetY = denormalize(sigmoid(value(output, 1)), FLIGHT_MIN_Y_UNITS, FLIGHT_MAX_Y_UNITS);
     const strikeProbability = sigmoid(value(output, 2));
-    const strikeReady = !simulation.attack_active
-      && simulation.hand_phase(0) === 0
-      && simulation.hand_phase(1) === 0
-      && simulation.hand_cooldown(0) === 0
-      && simulation.hand_cooldown(1) === 0;
-    return {
-      targetXUnits: targetX,
-      targetYUnits: targetY,
-      strike: strikeReady && strikeProbability >= model.strikeThreshold,
-    };
+    return actionFromNormalizedDecision(simulation, {
+      targetX: sigmoid(value(output, 0)),
+      targetY: sigmoid(value(output, 1)),
+      strike: strikeProbability >= model.strikeThreshold,
+    });
   }
 }
 
-function observationFeatures(simulation: Simulation): number[] {
+export interface NormalizedPolicyDecision {
+  targetX: number;
+  targetY: number;
+  strike: boolean;
+}
+
+export function actionFromNormalizedDecision(
+  simulation: Simulation,
+  decision: NormalizedPolicyDecision,
+): PolicyAction {
+  const strikeReady = !simulation.attack_active
+    && simulation.hand_phase(0) === 0
+    && simulation.hand_phase(1) === 0
+    && simulation.hand_cooldown(0) === 0
+    && simulation.hand_cooldown(1) === 0;
+  return {
+    targetXUnits: denormalize(decision.targetX, FLIGHT_MIN_X_UNITS, FLIGHT_MAX_X_UNITS),
+    targetYUnits: denormalize(decision.targetY, FLIGHT_MIN_Y_UNITS, FLIGHT_MAX_Y_UNITS),
+    strike: strikeReady && decision.strike,
+  };
+}
+
+export function observationFeatures(simulation: Simulation): number[] {
   const features = [
     simulation.tick / ROUND_TICKS,
     normalize(simulation.player_x_units, FLIGHT_MIN_X_UNITS, FLIGHT_MAX_X_UNITS),
@@ -73,7 +88,7 @@ function observationFeatures(simulation: Simulation): number[] {
     simulation.round_remaining_ticks / ROUND_TICKS,
   );
   if (features.length !== model.inputSize || features.length !== model.featureNames.length) {
-    throw new Error(`GRU feature mismatch: ${features.length} != ${model.inputSize}`);
+    throw new Error(`policy feature mismatch: ${features.length} != ${model.inputSize}`);
   }
   return features;
 }

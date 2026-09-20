@@ -25,8 +25,14 @@ Phase 3 MLP and GRU controllers are trained, and the GRU runs locally in the
 browser. Phase 4 now has a first full MaleCNS controller: its fixed measured
 topology carries 165,122 neuron states and produces valid closed-loop actions,
 with 33/33 hits on the varied-start validation suite versus 0/33 for its
-untrained initialization. It remains a one-seed result and is not exported to
-the browser yet. See [CURRENT.md](CURRENT.md) for the exact handoff.
+untrained initialization. Phase 5 now has a checksummed inference-only package
+and a Rust core that agrees with PyTorch, but the exact 196 MiB float32 model
+misses the native 60 Hz CPU target. A validated 148 MiB u16 package preserves
+33/33 live hits; its CPU and WASM paths also miss 60 Hz, while a checksummed
+WebGPU worker passes software-adapter correctness and a real RTX browser run at
+5.0 ms median / 6.9 ms p95. Press `5` to load and play against that genuine
+165,122-neuron controller locally. This is still a one-seed result. See
+[CURRENT.md](CURRENT.md) for the exact handoff.
 
 ## Run the current prototype
 
@@ -45,9 +51,14 @@ The current gray box uses pointer or touch movement. A larger fly fills the
 background while two floating hands track from opposite sides and commit to a
 coordinated slap. It includes collision, a 30-second round, immediate restart,
 three scripted policy modes on keys 1–3, and the frozen learned GRU on key `4`.
-Press `H` for velocity, target, collision, phase, cooldown, and real GRU hidden
+Run `npm run prepare:connectome-web` once when the ignored model assets are
+absent, then press `5` to load the full connectome through WebGPU. The status
+line shows loading, backend, adapter, model version, and fallback errors. Press
+`H` for velocity, target, collision, phase, cooldown, and real GRU hidden
 activity. Press `E` to export the current round's pointer path as a CSV for
-evaluation.
+evaluation. Mode `5` needs a compatible dedicated or integrated GPU with
+WebGPU; an RTX card is not required. Mode `4` remains the lightweight CPU
+fallback for unsupported devices.
 
 Run the automated gameplay gates with:
 
@@ -58,6 +69,14 @@ npm run test:expert
 npm run test:gru-parity
 npm run test:python
 npm run test:browser
+npm run export:connectome-packed
+npm run test:connectome-packed-parity
+npm run test:connectome-rust-parity
+npm run evaluate:connectome-quantization
+npm run export:connectome-quantized
+npm run test:connectome-quantized-rust-parity
+npm run benchmark:connectome-wasm
+npm run test:connectome-webgpu
 ```
 
 ## Intended stack

@@ -1,0 +1,74 @@
+import { expect, test } from "@playwright/test";
+
+const enabled = process.env.FLYBRAIN_CONNECTOME_WEBGPU === "1";
+
+test("validated u16 package runs in a WebGPU worker", async ({ page }) => {
+  test.skip(!enabled, "set FLYBRAIN_CONNECTOME_WEBGPU=1 for the large optional model");
+  test.setTimeout(180_000);
+  await page.goto("/connectome-benchmark.html?ticks=60");
+  await page.waitForFunction(
+    () => window.__flybrainConnectomeBenchmark?.snapshot().status !== "loading",
+    undefined,
+    { timeout: 170_000 },
+  );
+  const snapshot = await page.evaluate(
+    () => window.__flybrainConnectomeBenchmark?.snapshot(),
+  );
+  expect(snapshot?.status, JSON.stringify(snapshot)).toBe("measured");
+  const result = snapshot?.detail as {
+    packageSha256?: string;
+    ticks?: number;
+    inferenceMedianMs?: number;
+    finalDecision?: { targetX?: number; targetY?: number; strikeLogit?: number };
+  };
+  expect(result.packageSha256).toBe(
+    "0f5baf90bf5bed5802931b289d551474524547872ceb3eff657e25d9d8e54a37",
+  );
+  expect(result.ticks).toBe(60);
+  expect(result.inferenceMedianMs).toBeGreaterThan(0);
+  expect(result.finalDecision?.targetX).toBeCloseTo(0.3108477, 4);
+  expect(result.finalDecision?.targetY).toBeCloseTo(0.5584587, 4);
+  expect(result.finalDecision?.strikeLogit).toBeCloseTo(-1.1622446, 4);
+  console.log(`WebGPU benchmark: ${JSON.stringify(result)}`);
+});
+
+test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
+  test.skip(!enabled, "set FLYBRAIN_CONNECTOME_WEBGPU=1 for the large optional model");
+  test.setTimeout(180_000);
+  await page.goto("/");
+  await page.waitForFunction(() => window.__flybrainGame !== undefined);
+  await page.keyboard.down("5");
+  await page.waitForTimeout(100);
+  await page.keyboard.up("5");
+  await page.waitForFunction(
+    () => window.__flybrainGame?.snapshot().connectome.status === "ready",
+    undefined,
+    { timeout: 170_000 },
+  );
+  await page.waitForFunction(
+    () => (window.__flybrainGame?.snapshot().connectome.completedSteps ?? 0) > 0,
+    undefined,
+    { timeout: 20_000 },
+  );
+  const snapshot = await page.evaluate(() => window.__flybrainGame?.snapshot());
+  expect(snapshot?.policyMode).toBe("connectome");
+  expect(snapshot?.connectome.status).toBe("ready");
+  expect(snapshot?.connectome.completedSteps).toBeGreaterThan(0);
+});
+
+declare global {
+  interface Window {
+    __flybrainConnectomeBenchmark?: {
+      snapshot: () => { status: "loading" | "measured" | "error"; detail: unknown };
+    };
+    __flybrainGame?: {
+      snapshot: () => {
+        policyMode: string;
+        connectome: {
+          status: "idle" | "loading" | "ready" | "error";
+          completedSteps: number;
+        };
+      };
+    };
+  }
+}

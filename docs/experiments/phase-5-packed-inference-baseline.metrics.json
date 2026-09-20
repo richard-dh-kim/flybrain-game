@@ -1,0 +1,55 @@
+{
+  "experiment": "Phase 5 packed float32 inference baseline",
+  "date": "2026-09-20",
+  "status": "reference_export_and_parity_passed_cpu_budget_missed",
+  "model": {
+    "neurons": 165122,
+    "edges": 25563197,
+    "features": 33,
+    "checkpoint_sha256": "f795652899f3df47f43eda72bf6de4bf3f43337a28865723762b450e0f91daa7",
+    "graph_sha256": "eff4093bf53c4dd17d7ee4f2f838f6ae5ede70570f9a91317dd8824cca5c771d"
+  },
+  "package": {
+    "format": "flybrain-connectome-packed",
+    "format_version": 1,
+    "package_sha256": "1e78b5264d23ebcb080c2299eacf65c72fc76ed51b52c7052b097abc04074787",
+    "arrays": 10,
+    "bytes": 205876086,
+    "mib": 196.33873558044434,
+    "gzip_level_6_bytes": 116970611,
+    "gzip_level_6_mib": 111.55186748504639,
+    "brotli_quality_5_bytes": 97352796,
+    "brotli_quality_5_mib": 92.84286117553711
+  },
+  "pytorch_to_packed_numpy_parity": {
+    "ticks": 4,
+    "device": "cpu",
+    "absolute_tolerance": 0.00002,
+    "maximum_target_error": 2.9802322387695312e-08,
+    "maximum_strike_logit_error": 2.384185791015625e-07,
+    "maximum_state_error": 1.1920928955078125e-07,
+    "maximum_mean_state_error": 4.72418826280574e-10,
+    "status": "passed"
+  },
+  "packed_numpy_to_rust_parity": {
+    "ticks": 60,
+    "absolute_tolerance": 0.00002,
+    "maximum_target_error": 2.086162567138672e-07,
+    "strike_logit_error": 1.1950048817155334e-07,
+    "maximum_state_error": 1.1920928955078125e-07,
+    "mean_state_error": 6.948325248501419e-10,
+    "status": "passed"
+  },
+  "native_benchmark": {
+    "backend": "rust-native-single-thread-f32",
+    "hardware": "AMD Ryzen 5 7600 under WSL2",
+    "ticks": 60,
+    "load_ms": 194.402,
+    "inference_median_ms": 20.731,
+    "inference_p95_ms": 22.441,
+    "inference_maximum_ms": 23.114,
+    "frame_budget_ms": 16.666666666666668,
+    "within_60_hz_budget": false
+  },
+  "claim": "This is a native CPU reference measurement, not a browser or WASM result. Compression sizes are transfer estimates; the runtime consumes unpacked arrays."
+}

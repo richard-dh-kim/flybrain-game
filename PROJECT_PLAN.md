@@ -8,7 +8,12 @@ replay feed the Phase 3 MLP and GRU baselines. Varied-start controls are
 complete for one seed, and the frozen earlier GRU runs in the browser. The
 first Phase 4 full MaleCNS checkpoint beats its untrained initialization on 33
 held-out varied-start trajectories. Multi-seed and topology controls remain,
-and the MaleCNS controller has not been exported to the browser.
+and the MaleCNS controller is now available as an experimental browser mode.
+Phase 5 has a checksummed exact float32 package and parity-tested Rust core;
+its first native CPU baseline misses the 60 Hz and public-download targets. A
+validated u16 package preserves the live result, WebGPU passes software-adapter correctness,
+and a real RTX browser run passes the 60 Hz gate at 5.0 ms median / 6.9 ms p95.
+Mode `5` loads it on demand and reports its backend, model identity, and state.
 
 This document records the current product direction. Where it conflicts with `PROJECT_HANDOFF.md`, this document takes precedence.
 
@@ -389,5 +394,5 @@ Active status and migration instructions are maintained in `CURRENT.md`.
 
 1. Add multiple seeds plus shuffled-topology and matched random-sparse controls before comparative claims.
 2. Collect human paths and DAgger-style examples from learned-policy failures.
-3. Define the Phase 5 packed model format and benchmark Rust/WASM inference against the PyTorch checkpoint.
-4. Add sampled, synchronized MaleCNS activity to the browser visualization only after numerical parity passes.
+3. Playtest the on-demand full-connectome mode on hardware through a complete round, restart, mode switching, and fallback.
+4. Add sampled, synchronized MaleCNS activity to the browser visualization; numerical parity now passes.

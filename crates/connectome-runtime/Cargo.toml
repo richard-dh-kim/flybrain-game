@@ -1,0 +1,12 @@
+[package]
+name = "flybrain-connectome-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Float32 inference runtime for packed FlyBrain connectome models"
+
+[lib]
+crate-type = ["rlib"]
+
+[lints]
+workspace = true

@@ -1,0 +1,98 @@
+{
+  "experiment": "Phase 5 validated row-wise u16 candidate",
+  "date": "2026-09-20",
+  "status": "u16_validated_webgpu_budget_passed",
+  "float32_reference_package_sha256": "1e78b5264d23ebcb080c2299eacf65c72fc76ed51b52c7052b097abc04074787",
+  "quantization_validation_sha256": "59e605b825e828ab6294764c96a3aea853a41e0eb9abb26f0735e2f8c8199951",
+  "u16_package": {
+    "format_version": 2,
+    "package_sha256": "0f5baf90bf5bed5802931b289d551474524547872ceb3eff657e25d9d8e54a37",
+    "bytes": 155410180,
+    "mib": 148.21069717407227,
+    "gzip_level_6_bytes": 93559228,
+    "gzip_level_6_mib": 89.22503280639648,
+    "brotli_quality_5_bytes": 74821760,
+    "brotli_quality_5_mib": 71.3555908203125,
+    "zero_weight_edges": 0
+  },
+  "held_out": {
+    "rows": 2877,
+    "target_rmse_pixels": 56.76087188720703,
+    "float32_target_rmse_pixels": 56.76096725463867,
+    "target_maximum_absolute_difference": 0.0000069141387939453125,
+    "strike_logit_maximum_absolute_difference": 0.000026226043701171875,
+    "final_state_maximum_absolute_difference": 0.000012092292308807373,
+    "strike_decision_disagreements": 0
+  },
+  "fixed_live_suite": {
+    "episodes": 33,
+    "hits": 33,
+    "mean_hit_ticks": 116.45454545454545,
+    "accepted_strikes": 64,
+    "completed_misses": 31,
+    "matches_float32_aggregate": true
+  },
+  "rust_parity": {
+    "ticks": 60,
+    "absolute_tolerance": 0.00002,
+    "maximum_target_error": 1.1920928955078125e-07,
+    "strike_logit_error": 0.0000016685957031636889,
+    "maximum_state_error": 1.1920928955078125e-07,
+    "status": "passed"
+  },
+  "native_benchmark": {
+    "backend": "rust-native-single-thread-rowwise-u16",
+    "hardware": "AMD Ryzen 5 7600 under WSL2",
+    "ticks": 300,
+    "load_ms": 133.757,
+    "inference_median_ms": 19.263,
+    "inference_p95_ms": 20.99,
+    "inference_maximum_ms": 22.407,
+    "within_60_hz_budget": false
+  },
+  "wasm_benchmark": {
+    "backend": "Node V8 WebAssembly single-thread rowwise-u16",
+    "ticks": 300,
+    "disk_load_ms": 139.56597299999999,
+    "wasm_construct_ms": 99.954598,
+    "inference_median_ms": 21.400426999999922,
+    "inference_p95_ms": 23.34852299999966,
+    "inference_maximum_ms": 63.241675999999984,
+    "process_rss_mib": 356.82421875,
+    "within_60_hz_budget": false
+  },
+  "webgpu_software_validation": {
+    "backend": "Chromium WebGPU SwiftShader worker",
+    "purpose": "shader correctness only; not a hardware performance result",
+    "ticks": 60,
+    "load_and_checksum_ms": 923.9000000059605,
+    "inference_median_ms": 106.80000001192093,
+    "inference_p95_ms": 118.90000000596046,
+    "final_target": [0.31084612011909485, 0.5584585666656494],
+    "final_strike_logit": -1.162232756614685,
+    "status": "passed"
+  },
+  "webgpu_hardware_benchmark": {
+    "backend": "webgpu-rowwise-u16",
+    "adapter": "nvidia lovelace",
+    "measurement_context": "manual run in a normal Windows browser",
+    "browser_version": "not recorded",
+    "ticks": 300,
+    "load_and_checksum_ms": 621.5,
+    "inference_median_ms": 5.0,
+    "inference_p95_ms": 6.9000000059604645,
+    "inference_maximum_ms": 279.0,
+    "within_60_hz_budget": true,
+    "final_target": [0.7766728401184082, 0.4541027843952179],
+    "final_strike_logit": -3.4519569873809814,
+    "final_strike_probability": 0.030710551373678376,
+    "status": "passed"
+  },
+  "rejected_u8_candidate": {
+    "estimated_package_mib": 123.83173274993896,
+    "zero_weight_edges": 214917,
+    "held_out_strike_decision_disagreements": 13,
+    "fixed_suite_hits": 33,
+    "reason": "It effectively removed measured edges and changed held-out strike decisions."
+  }
+}

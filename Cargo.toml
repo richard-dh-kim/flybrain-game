@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "crates/connectome-runtime",
+    "crates/connectome-wasm",
     "crates/game-core",
     "crates/game-python",
     "crates/game-wasm",

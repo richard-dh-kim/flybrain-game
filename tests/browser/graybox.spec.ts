@@ -5,9 +5,13 @@ interface BrowserSnapshot {
   roundStatus: number;
   playerX: number;
   playerY: number;
-  policyMode: "idle" | "chase" | "predictive" | "learned";
+  policyMode: "idle" | "chase" | "predictive" | "learned" | "connectome";
   pointerActive: boolean;
   debugEnabled: boolean;
+  connectome: {
+    status: "idle" | "loading" | "ready" | "error";
+    completedSteps: number;
+  };
 }
 
 test("loads, follows the pointer, and switches policy modes", async ({ page }) => {

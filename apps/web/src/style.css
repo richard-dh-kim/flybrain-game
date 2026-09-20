@@ -77,6 +77,15 @@ h1 {
   display: block;
 }
 
+.controller-status {
+  min-height: 1.15rem;
+  margin: 0.65rem 0.35rem 0;
+  color: #f2cf9b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(0.68rem, 1.8vw, 0.8rem);
+  line-height: 1.4;
+}
+
 .cabinet__footer {
   display: flex;
   justify-content: space-between;

@@ -11,6 +11,7 @@ target/
 pkg/
 .tools/
 apps/web/src/generated/wasm/
+apps/web/public/models/
 
 # Python
 .venv/

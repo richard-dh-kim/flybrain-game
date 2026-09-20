@@ -13,8 +13,8 @@ presentation, synchronized slap, collision behavior, and policy switching.
 Phase 2 mechanics validation is technically complete, with human-path
 collection continuing during playtests. Phase 3 conventional learned baselines
 are active, and the first Phase 4 full MaleCNS controller has passed its
-single-seed trained-versus-initialized gate. Phase 5 browser export has not
-started.
+single-seed trained-versus-initialized gate. Phase 5 now has a validated packed
+u16 model and an experimental full-connectome WebGPU game mode.
 
 Completed:
 
@@ -110,15 +110,46 @@ Completed:
   `docs/experiments/phase-4-male-cns-v1.md`. It uses one training seed and has
   no shuffled-topology or random-sparse comparison, so it does not support a
   claim that biological topology is better.
+- The Phase 5 inference-only format fuses learned edge gains and leaks, strips
+  training state, records all source and array hashes, and passes full-state
+  PyTorch-to-NumPy and NumPy-to-Rust parity. Its exact float32 arrays occupy
+  196.34 MiB unpacked and 92.84 MiB with measured Brotli quality 5.
+- A dependency-free Rust runtime compiles natively and for WASM. On the Ryzen 5
+  7600 under WSL2, its first single-thread float32 baseline measured 20.73 ms
+  median and 22.44 ms p95, missing the 16.67 ms 60 Hz budget. See
+  `docs/experiments/phase-5-packed-inference-baseline.md`.
+- Row-wise u16 weights passed all 2,877 held-out rows with no strike-decision
+  changes and preserved the 33/33 live-suite aggregate without zeroing any
+  measured edge. Packed v2 is 148.21 MiB unpacked and 71.36 MiB with measured
+  Brotli quality 5. The 8-bit candidate was rejected because it zeroed 214,917
+  edges and changed 13 held-out strike decisions.
+- The u16 runtime measured 19.26 ms median natively and 21.40 ms in Node V8
+  WebAssembly. Both miss 60 Hz, so the next backend experiment is WebGPU in an
+  on-demand worker. See `docs/experiments/phase-5-u16-candidate.md`.
+- A WebGPU worker verifies all package hashes, consumes packed u16
+  weights directly, carries GPU-resident state, and matches the native 60-tick
+  output in headless Chromium. SwiftShader correctness passed at 106.8 ms
+  median.
+- A user-run 300-tick hardware benchmark identified the `nvidia lovelace`
+  adapter and measured 5.0 ms median and 6.9 ms p95, passing the 16.67 ms
+  60 Hz budget. Its final outputs agree with the native reference within
+  `3.4e-6`; local load, checksum verification, and upload took 621.5 ms. See
+  `docs/experiments/phase-5-u16-candidate.md`.
+- Pressing `5` now starts an on-demand worker load and runs the full
+  165,122-neuron controller locally. The page shows verified loading progress,
+  backend, adapter, format version, and a short package hash. The fixed-step
+  simulation waits for the matching recurrent decision while rendering remains
+  responsive. An unsupported browser or missing package reports the failure
+  and returns to the small GRU on key `4`.
 - Rust formatting, Clippy, workspace tests, Python replay test, WASM replay
   test, policy comparison, browser automation, TypeScript checking, and the
   production browser build pass in WSL2.
 
-A first connectome-constrained gameplay result now exists, but it runs only in
-the Python/CUDA evaluation path. The current browser mode `4` still uses the
-19,203-parameter conventional GRU and must not be presented as the fly
-connectome. Phase 5 must define and validate a local browser inference format
-before the MaleCNS policy can become a playable mode.
+A first connectome-constrained gameplay result and exact portable inference
+reference now exist. Browser mode `4` remains the 19,203-parameter conventional
+GRU; experimental mode `5` is the genuine packed MaleCNS controller. This is
+still a one-seed model, and the ignored 148 MiB local model assets must be
+prepared before mode `5` can load from a fresh checkout.
 
 ## Local environment note
 
@@ -167,7 +198,7 @@ browser through `localhost`.
 
 ## Immediate next work
 
-Continue validation while beginning the Phase 5 export work:
+Continue validation while advancing the Phase 5 runtime work:
 
 1. Replicate the conventional and MaleCNS runs across additional seeds, then
    add shuffled-topology and matched random-sparse controls before making any
@@ -175,8 +206,8 @@ Continue validation while beginning the Phase 5 export work:
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.
-3. Define the checksummed Phase 5 packed inference format, strip training-only
-   state, and benchmark a Rust/WASM CPU prototype before deciding whether a
-   WebGPU path is needed.
-4. Expose synchronized sampled MaleCNS activity to the existing `H` panel only
-   after browser numerical parity is established.
+3. Playtest mode `5` in the normal hardware browser, including a full round,
+   restart, switching between modes `4` and `5`, and an intentionally missing
+   model to confirm the visible GRU fallback.
+4. Expose synchronized sampled MaleCNS activity to the existing `H` panel; the
+   browser parity and hardware latency gates are now passed.

@@ -36,6 +36,10 @@ from flybrain_training.schema import (
     synchronized_strike_is_ready,
 )
 from flybrain_training.topology_controls import build_topology_control
+from flybrain_training.topology_experiment import (
+    THRESHOLD_SELECTION_RULE,
+    select_live_threshold,
+)
 
 
 EXPECTED_GRAPH_SHA256 = "eff4093bf53c4dd17d7ee4f2f838f6ae5ede70570f9a91317dd8824cca5c771d"
@@ -387,6 +391,7 @@ def main() -> None:
             not args.reset_state,
         )
     trained_live = trained_conditions[str(thresholds[0])]
+    selected_threshold = select_live_threshold(trained_conditions)
     beats_initialization = None
     if initial_live is not None and len(thresholds) == 1:
         initial_hits = int(initial_live["hits"])
@@ -431,6 +436,8 @@ def main() -> None:
         ),
         "initial_reference_sha256": initial_reference_sha256,
         "trained_thresholds": thresholds,
+        "selected_threshold": selected_threshold,
+        "threshold_selection_rule": THRESHOLD_SELECTION_RULE,
         "initial": initial_live,
         "trained": trained_live if len(thresholds) == 1 else None,
         "trained_conditions": trained_conditions,

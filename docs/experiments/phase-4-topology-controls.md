@@ -37,8 +37,9 @@ control follows the measured model's exact schedule:
 2. 1,200 refinement steps at learning rate 0.01, resumed from the pilot.
 3. Offline carried-state and reset-state validation.
 4. The same six-threshold closed-loop sweep on the 12-episode evaluation suite.
-5. Freeze the best evaluation threshold, then run the 33-episode validation
-   suite once.
+5. Select the threshold by maximizing hits, then minimizing mean successful hit
+   time, completed misses, accepted strikes, and finally the numeric threshold.
+6. Freeze that value, then run the 33-episode validation suite once.
 
 This seed-matched result can reveal a useful difference, but it still cannot
 support a broad claim about biological topology. The full comparison needs the

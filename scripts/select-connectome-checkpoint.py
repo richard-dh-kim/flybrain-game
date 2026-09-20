@@ -10,6 +10,11 @@ from pathlib import Path
 
 import torch
 
+from flybrain_training.topology_experiment import (
+    THRESHOLD_SELECTION_RULE,
+    select_live_threshold,
+)
+
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -38,11 +43,12 @@ def main() -> None:
     key = str(args.threshold)
     if key not in sweep["trained_conditions"]:
         raise ValueError("selected threshold is absent from the sweep")
-    maximum_hits = max(
-        condition["hits"] for condition in sweep["trained_conditions"].values()
-    )
-    if sweep["trained_conditions"][key]["hits"] != maximum_hits:
-        raise ValueError("selected threshold did not maximize sweep hits")
+    selected_threshold = select_live_threshold(sweep["trained_conditions"])
+    if args.threshold != selected_threshold:
+        raise ValueError(
+            f"selected threshold {args.threshold} violates the fixed rule; "
+            f"expected {selected_threshold}"
+        )
     if validation["status"] != "passed" or not validation["beats_initialization"]:
         raise ValueError("selected threshold did not pass live validation")
     if validation["trained_thresholds"] != [args.threshold]:
@@ -60,7 +66,10 @@ def main() -> None:
         "source_checkpoint_sha256": source_sha256,
         "threshold_sweep_sha256": sha256_file(args.sweep),
         "live_validation_sha256": sha256_file(args.validation),
-        "criterion": "maximum hits on 12-episode sweep, then fixed 33-episode validation",
+        "criterion": (
+            f"{THRESHOLD_SELECTION_RULE} on 12-episode sweep, then fixed "
+            "33-episode validation"
+        ),
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     torch.save(checkpoint, args.out)

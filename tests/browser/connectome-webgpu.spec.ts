@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const enabled = process.env.FLYBRAIN_CONNECTOME_WEBGPU === "1";
 
@@ -54,7 +54,36 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   expect(snapshot?.policyMode).toBe("connectome");
   expect(snapshot?.connectome.status).toBe("ready");
   expect(snapshot?.connectome.completedSteps).toBeGreaterThan(0);
+  expect(snapshot?.connectome.inferenceMedianMs).toBeGreaterThan(0);
+  const initialTick = snapshot?.tick ?? 0;
+  const initialPlayerX = snapshot?.playerX ?? 0;
+  const canvas = page.locator("canvas");
+  const bounds = await canvas.boundingBox();
+  expect(bounds).not.toBeNull();
+  await page.mouse.move(bounds!.x + bounds!.width * 0.8, bounds!.y + bounds!.height * 0.5);
+  await page.waitForTimeout(250);
+  const later = await page.evaluate(() => window.__flybrainGame?.snapshot());
+  expect((later?.tick ?? 0) - initialTick).toBeGreaterThan(1);
+  expect(later?.playerX ?? 0).toBeGreaterThan(initialPlayerX);
+
+  await tapKey(page, "3");
+  await page.waitForFunction(() => window.__flybrainGame?.snapshot().policyMode === "predictive");
+  await tapKey(page, "5");
+  await page.waitForFunction(
+    () => (
+      window.__flybrainGame?.snapshot().policyMode === "connectome"
+      && (window.__flybrainGame?.snapshot().connectome.completedSteps ?? 0) > 0
+    ),
+    undefined,
+    { timeout: 5_000 },
+  );
 });
+
+async function tapKey(page: Page, key: string): Promise<void> {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(100);
+  await page.keyboard.up(key);
+}
 
 declare global {
   interface Window {
@@ -64,9 +93,13 @@ declare global {
     __flybrainGame?: {
       snapshot: () => {
         policyMode: string;
+        tick: number;
+        playerX: number;
+        simulationRateHz: number;
         connectome: {
           status: "idle" | "loading" | "ready" | "error";
           completedSteps: number;
+          inferenceMedianMs: number | null;
         };
       };
     };

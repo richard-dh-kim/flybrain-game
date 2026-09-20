@@ -137,10 +137,17 @@ Completed:
   `docs/experiments/phase-5-u16-candidate.md`.
 - Pressing `5` now starts an on-demand worker load and runs the full
   165,122-neuron controller locally. The page shows verified loading progress,
-  backend, adapter, format version, and a short package hash. The fixed-step
-  simulation waits for the matching recurrent decision while rendering remains
-  responsive. An unsupported browser or missing package reports the failure
-  and returns to the small GRU on key `4`.
+  backend, adapter, format version, and a short package hash. It waits for the
+  first recurrent decision before starting the round. An unsupported browser
+  or missing package reports the failure and returns to the small GRU on key
+  `4`.
+- Live mode `5` no longer pauses mouse movement when a brain result misses a
+  render frame. The simulation continues at its fixed rate using the latest
+  hand action while ordered brain states finish in the worker. Switching modes
+  cancels queued work from the previous recurrent epoch. The status line now
+  reports brain median/p95 time, end-to-end p95, queue depth, simulation rate,
+  and render rate. The `H` overlay labels the green mouse destination separately
+  from the yellow hand target.
 - Rust formatting, Clippy, workspace tests, Python replay test, WASM replay
   test, policy comparison, browser automation, TypeScript checking, and the
   production browser build pass in WSL2.

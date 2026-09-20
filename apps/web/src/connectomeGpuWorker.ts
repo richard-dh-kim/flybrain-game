@@ -37,9 +37,13 @@ type WorkerRequest = BenchmarkRequest | LoadRequest | StepRequest | ResetRequest
 const worker = self as DedicatedWorkerGlobalScope;
 let activeModel: ConnectomeWebGpu | undefined;
 let commandChain = Promise.resolve();
+let newestEpoch = 0;
 
 worker.onmessage = (event: MessageEvent<WorkerRequest>): void => {
   const request = event.data;
+  if (request.type === "reset") {
+    newestEpoch = Math.max(newestEpoch, request.epoch);
+  }
   commandChain = commandChain
     .then(() => handleRequest(request))
     .catch((error: unknown) => {
@@ -62,15 +66,20 @@ async function handleRequest(request: WorkerRequest): Promise<void> {
     );
     worker.postMessage({ type: "loaded", info: activeModel.info });
   } else if (request.type === "step") {
+    if (request.epoch !== newestEpoch) {
+      return;
+    }
     if (!activeModel) {
       throw new Error("connectome model is not loaded");
     }
+    const started = performance.now();
     const decision = await activeModel.step(request.features);
     worker.postMessage({
       type: "decision",
       requestId: request.requestId,
       epoch: request.epoch,
       decision,
+      inferenceMs: performance.now() - started,
     });
   } else if (request.type === "reset") {
     activeModel?.reset();

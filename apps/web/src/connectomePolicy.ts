@@ -11,6 +11,8 @@ import type {
 import type { PolicyAction } from "./scriptedPolicy";
 
 const MODEL_BASE_URL = "/models/connectome-u16-v2";
+const MAX_PENDING_STEPS = 30;
+const TIMING_WINDOW = 120;
 
 export type ConnectomePolicyStatus = "idle" | "loading" | "ready" | "error";
 
@@ -20,7 +22,11 @@ export interface ConnectomePolicySnapshot {
   info: ConnectomeGpuInfo | null;
   error: string | null;
   pending: boolean;
+  pendingSteps: number;
   completedSteps: number;
+  inferenceMedianMs: number | null;
+  inferenceP95Ms: number | null;
+  roundTripP95Ms: number | null;
 }
 
 type WorkerResponse =
@@ -31,6 +37,7 @@ type WorkerResponse =
     requestId: number;
     epoch: number;
     decision: ConnectomeGpuDecision;
+    inferenceMs: number;
   }
   | { type: "reset"; epoch: number }
   | { type: "error"; message: string; requestId?: number };
@@ -41,11 +48,13 @@ export class ConnectomePolicy {
   private progress: ConnectomeGpuProgress | null = null;
   private info: ConnectomeGpuInfo | null = null;
   private error: string | null = null;
-  private pendingRequestId: number | null = null;
-  private completedDecision: ConnectomeGpuDecision | null = null;
+  private pendingRequests = new Map<number, { epoch: number; started: number }>();
+  private latestDecision: ConnectomeGpuDecision | null = null;
   private requestId = 0;
   private epoch = 0;
   private completedSteps = 0;
+  private inferenceDurations: number[] = [];
+  private roundTripDurations: number[] = [];
 
   start(): void {
     if (this.status === "loading" || this.status === "ready") {
@@ -75,9 +84,11 @@ export class ConnectomePolicy {
 
   reset(): void {
     this.epoch += 1;
-    this.pendingRequestId = null;
-    this.completedDecision = null;
+    this.pendingRequests.clear();
+    this.latestDecision = null;
     this.completedSteps = 0;
+    this.inferenceDurations = [];
+    this.roundTripDurations = [];
     if (this.status === "ready") {
       this.worker?.postMessage({ type: "reset", epoch: this.epoch });
     }
@@ -87,14 +98,16 @@ export class ConnectomePolicy {
     if (
       this.status !== "ready"
       || !this.worker
-      || this.pendingRequestId !== null
-      || this.completedDecision !== null
     ) {
+      return false;
+    }
+    if (this.pendingRequests.size >= MAX_PENDING_STEPS) {
+      this.fail(`WebGPU inference fell ${MAX_PENDING_STEPS} game ticks behind`);
       return false;
     }
     const features = new Float32Array(observationFeatures(simulation));
     const requestId = ++this.requestId;
-    this.pendingRequestId = requestId;
+    this.pendingRequests.set(requestId, { epoch: this.epoch, started: performance.now() });
     this.worker.postMessage(
       { type: "step", requestId, epoch: this.epoch, features },
       [features.buffer],
@@ -103,11 +116,11 @@ export class ConnectomePolicy {
   }
 
   takeAction(simulation: Simulation): PolicyAction | undefined {
-    if (!this.completedDecision) {
+    if (!this.latestDecision) {
       return undefined;
     }
-    const decision = this.completedDecision;
-    this.completedDecision = null;
+    const decision = this.latestDecision;
+    this.latestDecision = null;
     return actionFromNormalizedDecision(simulation, decision);
   }
 
@@ -117,8 +130,12 @@ export class ConnectomePolicy {
       progress: this.progress,
       info: this.info,
       error: this.error,
-      pending: this.pendingRequestId !== null,
+      pending: this.pendingRequests.size > 0,
+      pendingSteps: this.pendingRequests.size,
       completedSteps: this.completedSteps,
+      inferenceMedianMs: percentile(this.inferenceDurations, 50),
+      inferenceP95Ms: percentile(this.inferenceDurations, 95),
+      roundTripP95Ms: percentile(this.roundTripDurations, 95),
     };
   }
 
@@ -136,12 +153,15 @@ export class ConnectomePolicy {
       };
       this.reset();
     } else if (message.type === "decision") {
-      if (message.epoch !== this.epoch || message.requestId !== this.pendingRequestId) {
+      const pending = this.pendingRequests.get(message.requestId);
+      if (!pending || message.epoch !== this.epoch || pending.epoch !== this.epoch) {
         return;
       }
-      this.pendingRequestId = null;
-      this.completedDecision = message.decision;
+      this.pendingRequests.delete(message.requestId);
+      this.latestDecision = message.decision;
       this.completedSteps += 1;
+      recordTiming(this.inferenceDurations, message.inferenceMs);
+      recordTiming(this.roundTripDurations, performance.now() - pending.started);
     } else if (message.type === "error") {
       this.fail(message.message);
     }
@@ -150,9 +170,25 @@ export class ConnectomePolicy {
   private fail(message: string): void {
     this.status = "error";
     this.error = message;
-    this.pendingRequestId = null;
-    this.completedDecision = null;
+    this.pendingRequests.clear();
+    this.latestDecision = null;
     this.worker?.terminate();
     this.worker = undefined;
   }
+}
+
+function recordTiming(values: number[], value: number): void {
+  values.push(value);
+  if (values.length > TIMING_WINDOW) {
+    values.shift();
+  }
+}
+
+function percentile(values: number[], percentage: number): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.ceil(((sorted.length - 1) * percentage) / 100);
+  return sorted[index] ?? null;
 }

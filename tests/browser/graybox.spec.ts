@@ -8,6 +8,8 @@ interface BrowserSnapshot {
   policyMode: "idle" | "chase" | "predictive" | "learned" | "connectome";
   pointerActive: boolean;
   debugEnabled: boolean;
+  simulationRateHz: number;
+  renderRateFps: number;
   connectome: {
     status: "idle" | "loading" | "ready" | "error";
     completedSteps: number;

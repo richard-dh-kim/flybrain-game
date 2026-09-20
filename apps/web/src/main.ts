@@ -30,6 +30,8 @@ interface BrowserSnapshot {
   policyMode: PolicyMode;
   pointerActive: boolean;
   debugEnabled: boolean;
+  simulationRateHz: number;
+  renderRateFps: number;
   connectome: ConnectomePolicySnapshot;
 }
 
@@ -67,6 +69,7 @@ class GrayboxScene extends Phaser.Scene {
   private policyMode: PolicyMode = "predictive";
   private learnedPolicy = new LearnedGruPolicy();
   private connectomePolicy = new ConnectomePolicy();
+  private connectomeAction: PolicyAction | null = null;
   private pointerDestination = new Phaser.Math.Vector2(WIDTH / 2, HEIGHT / 2);
   private pointerActive = false;
   private debugEnabled = false;
@@ -77,6 +80,9 @@ class GrayboxScene extends Phaser.Scene {
   };
   private accumulatedTime = 0;
   private humanTrajectory: HumanTrajectoryRow[] = [];
+  private simulationRateHz = 0;
+  private rateSampleStarted = performance.now();
+  private rateSampleTick = 0;
 
   create(): void {
     this.cameras.main.setBackgroundColor("#dca982");
@@ -203,6 +209,8 @@ class GrayboxScene extends Phaser.Scene {
       this.simulation.restart();
       this.learnedPolicy.reset();
       this.connectomePolicy.reset();
+      this.connectomeAction = null;
+      this.resetRateSample();
       this.humanTrajectory = [];
       this.statusText.setText("");
     }
@@ -230,6 +238,7 @@ class GrayboxScene extends Phaser.Scene {
     ) {
       this.policyMode = "learned";
       this.learnedPolicy.reset();
+      this.connectomeAction = null;
       this.brainText.setText("CONTROLLER: GRU FALLBACK [4]");
     }
     this.syncConnectomeUi();
@@ -242,12 +251,17 @@ class GrayboxScene extends Phaser.Scene {
       let action: PolicyAction;
       if (this.policyMode === "connectome") {
         const connectomeAction = this.connectomePolicy.takeAction(this.simulation);
-        if (!connectomeAction) {
-          this.connectomePolicy.request(this.simulation);
-          this.accumulatedTime = Math.min(this.accumulatedTime, fixedStepMilliseconds);
+        if (connectomeAction) {
+          this.connectomeAction = connectomeAction;
+        }
+        if (!this.connectomeAction) {
+          if (this.connectomePolicy.snapshot().pendingSteps === 0) {
+            this.connectomePolicy.request(this.simulation);
+          }
+          this.accumulatedTime = 0;
           break;
         }
-        action = connectomeAction;
+        action = this.connectomeAction;
       } else if (this.policyMode === "learned") {
         action = this.learnedPolicy.decide(this.simulation);
       } else {
@@ -279,9 +293,10 @@ class GrayboxScene extends Phaser.Scene {
       this.accumulatedTime -= fixedStepMilliseconds;
       if (this.policyMode === "connectome") {
         this.connectomePolicy.request(this.simulation);
-        break;
       }
     }
+
+    this.sampleSimulationRate();
 
     this.player.x = this.simulation.player_x;
     this.player.y = this.simulation.player_y;
@@ -303,6 +318,8 @@ class GrayboxScene extends Phaser.Scene {
     this.policyMode = mode;
     this.learnedPolicy.reset();
     this.connectomePolicy.reset();
+    this.connectomeAction = null;
+    this.resetRateSample();
     if (mode === "connectome") {
       this.connectomePolicy.start();
     }
@@ -328,6 +345,8 @@ class GrayboxScene extends Phaser.Scene {
       policyMode: this.policyMode,
       pointerActive: this.pointerActive,
       debugEnabled: this.debugEnabled,
+      simulationRateHz: this.simulationRateHz,
+      renderRateFps: this.game.loop.actualFps,
       connectome: this.connectomePolicy.snapshot(),
     };
   }
@@ -349,8 +368,11 @@ class GrayboxScene extends Phaser.Scene {
       }
     } else if (connectome.status === "ready" && connectome.info) {
       const shortHash = connectome.info.packageSha256.slice(0, 8);
+      const timing = connectome.inferenceMedianMs === null
+        ? "warming up"
+        : `brain ${connectome.inferenceMedianMs.toFixed(1)}/${(connectome.inferenceP95Ms ?? 0).toFixed(1)} ms med/p95 · trip p95 ${(connectome.roundTripP95Ms ?? 0).toFixed(1)} ms · queue ${connectome.pendingSteps}`;
       this.connectomeStatusElement.textContent =
-        `Full connectome: ready · WebGPU u16 · ${connectome.info.adapter} · v${connectome.info.formatVersion} ${shortHash}`;
+        `Full connectome: ready · WebGPU u16 · ${connectome.info.adapter} · v${connectome.info.formatVersion} ${shortHash} · ${timing} · sim ${this.simulationRateHz.toFixed(0)} Hz · render ${this.game.loop.actualFps.toFixed(0)} fps`;
       if (this.policyMode === "connectome") {
         this.brainText.setText("CONTROLLER: FULL FLY BRAIN [5]");
       }
@@ -358,6 +380,25 @@ class GrayboxScene extends Phaser.Scene {
       this.connectomeStatusElement.textContent =
         `Full connectome unavailable: ${connectome.error ?? "unknown error"} · using GRU [4]`;
     }
+  }
+
+  private resetRateSample(): void {
+    this.simulationRateHz = 0;
+    this.rateSampleStarted = performance.now();
+    this.rateSampleTick = this.simulation.tick;
+  }
+
+  private sampleSimulationRate(): void {
+    const now = performance.now();
+    const elapsed = now - this.rateSampleStarted;
+    if (elapsed < 500) {
+      return;
+    }
+    this.simulationRateHz = (
+      (this.simulation.tick - this.rateSampleTick) * 1_000
+    ) / elapsed;
+    this.rateSampleStarted = now;
+    this.rateSampleTick = this.simulation.tick;
   }
 
   private humanTrajectoryCsv(): string {
@@ -467,6 +508,8 @@ class GrayboxScene extends Phaser.Scene {
     const velocityY = this.simulation.player_velocity_y;
     const targetX = this.latestAction.targetXUnits / UNITS_PER_PIXEL;
     const targetY = this.latestAction.targetYUnits / UNITS_PER_PIXEL;
+    const mouseX = this.pointerDestination.x;
+    const mouseY = this.pointerDestination.y;
 
     this.debugGraphics.lineStyle(2, 0x35d2ff, 0.9);
     this.debugGraphics.strokeCircle(playerX, playerY, this.simulation.player_radius);
@@ -481,6 +524,11 @@ class GrayboxScene extends Phaser.Scene {
     this.debugGraphics.lineBetween(targetX - 9, targetY, targetX + 9, targetY);
     this.debugGraphics.lineBetween(targetX, targetY - 9, targetX, targetY + 9);
     this.debugGraphics.strokeCircle(targetX, targetY, 13);
+
+    this.debugGraphics.lineStyle(2, 0x71f79f, 0.95);
+    this.debugGraphics.lineBetween(mouseX - 8, mouseY - 8, mouseX + 8, mouseY + 8);
+    this.debugGraphics.lineBetween(mouseX - 8, mouseY + 8, mouseX + 8, mouseY - 8);
+    this.debugGraphics.strokeCircle(mouseX, mouseY, 11);
 
     const handLines: string[] = [];
     for (let index = 0; index < 2; index += 1) {
@@ -504,7 +552,7 @@ class GrayboxScene extends Phaser.Scene {
     this.debugText.setText([
       `tick=${this.simulation.tick} round=${this.simulation.round_status} attack=${Number(this.simulation.attack_active)}`,
       `player=(${playerX.toFixed(1)}, ${playerY.toFixed(1)}) vel=(${velocityX.toFixed(2)}, ${velocityY.toFixed(2)})`,
-      `target=(${targetX.toFixed(1)}, ${targetY.toFixed(1)}) strike=${Number(this.latestAction.strike)}`,
+      `mouse=(${mouseX.toFixed(1)}, ${mouseY.toFixed(1)}) hand-target=(${targetX.toFixed(1)}, ${targetY.toFixed(1)}) strike=${Number(this.latestAction.strike)}`,
       ...handLines,
     ]);
 

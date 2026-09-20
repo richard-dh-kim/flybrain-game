@@ -58,7 +58,8 @@ line shows loading, backend, adapter, model version, and fallback errors. Press
 activity. Press `E` to export the current round's pointer path as a CSV for
 evaluation. Mode `5` needs a compatible dedicated or integrated GPU with
 WebGPU; an RTX card is not required. Mode `4` remains the lightweight CPU
-fallback for unsupported devices.
+fallback for unsupported devices. In the `H` overlay, the green marker is the
+mouse destination and the yellow marker is the controller's hand target.
 
 Run the automated gameplay gates with:
 

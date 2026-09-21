@@ -32,6 +32,7 @@ if (
 
 run(cargo, [
   "build",
+  "--locked",
   "--release",
   "-p",
   "flybrain-game-wasm",

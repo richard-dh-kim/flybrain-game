@@ -38,6 +38,6 @@ const parameters = new URLSearchParams(location.search);
 const ticks = Number.parseInt(parameters.get("ticks") ?? "120", 10);
 worker.postMessage({
   type: "benchmark",
-  baseUrl: "/models/connectome-u16-v2",
+  baseUrl: `${import.meta.env.BASE_URL}models/connectome-u16-v2`,
   ticks,
 });

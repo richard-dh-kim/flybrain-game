@@ -10,7 +10,7 @@ import type {
 } from "./connectomeWebGpu";
 import type { PolicyAction } from "./scriptedPolicy";
 
-const MODEL_BASE_URL = "/models/connectome-u16-v2";
+const MODEL_BASE_URL = `${import.meta.env.BASE_URL}models/connectome-u16-v2`;
 const TIMING_WINDOW = 120;
 
 export type ConnectomePolicyStatus = "idle" | "loading" | "ready" | "error";

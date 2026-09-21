@@ -197,6 +197,15 @@ the measured biological topology is superior for this task. Exact results and
 hashes are in `docs/experiments/phase-4-topology-controls.md` and its compact
 metrics JSON.
 
+A manual GitHub Pages workflow now builds the game for `/flybrain-game/`,
+downloads the ignored full model from a fixed GitHub Release, verifies the
+release archive hash, and deploys the 151 MiB site. The deterministic release
+archive is 88,315,352 bytes with SHA-256
+`fbbd7193b4eaffb0cd72378bdfe6e037f4ac56f4e63a1d007b7999edaa8461ca`.
+The exact Pages build, browser suite, and a localhost project-subpath fetch of
+the page, JavaScript, and model manifest pass. Publication remains manual; see
+`docs/deployment.md`.
+
 ## Local environment note
 
 The Ubuntu environment currently lacks the system `build-essential`,
@@ -246,9 +255,10 @@ browser through `localhost`.
 
 Prepare the working game for a public static release:
 
-1. Recheck full-brain hardware timing after major presentation changes and test
-   an intentionally missing model to confirm the visible CPU fallback. A phone
-   browser is the remaining practical device check.
+1. Publish the fixed connectome archive as the documented GitHub Release asset,
+   enable the GitHub Actions Pages source, run the manual deployment, and test
+   the live URL on the RTX browser and a phone. Also test an intentionally
+   missing model to confirm the visible CPU fallback.
 2. Export several real rounds with `E` and use human or learned-policy failures
    for DAgger-style data collection without committing personal raw recordings
    by default.

@@ -31,8 +31,10 @@ misses the native 60 Hz CPU target. A validated 148 MiB u16 package preserves
 33/33 live hits; its CPU and WASM paths also miss 60 Hz, while a checksummed
 WebGPU worker passes software-adapter correctness and a real RTX browser run at
 5.0 ms median / 6.9 ms p95. Press `5` to load and play against that genuine
-165,122-neuron controller locally. This is still a one-seed result. See
-[CURRENT.md](CURRENT.md) for the exact handoff.
+165,122-neuron controller locally. The initial three-seed topology comparison
+is also complete: measured wiring beats a tightly degree-matched shuffle
+overall, while random sparse performs best overall. See [CURRENT.md](CURRENT.md)
+for the exact handoff.
 
 ## Run the current prototype
 
@@ -73,6 +75,14 @@ labels can be compared. Automatic CPU fallback covers browsers without a
 usable WebGPU adapter as well as model loading, verification, or inference
 failures. The green debug marker is the mouse destination and the yellow marker
 is the hand target.
+
+## Static deployment
+
+The first public build targets GitHub Pages. The full model remains outside Git
+as a checksummed release asset; the manual deployment workflow downloads it,
+builds the Vite site for `/flybrain-game/`, and publishes the result. See
+[docs/deployment.md](docs/deployment.md) for the fixed asset hash and first
+publication steps.
 
 Run the automated gameplay gates with:
 

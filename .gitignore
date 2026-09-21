@@ -34,6 +34,7 @@ work/
 .env
 .env.*
 !.env.example
+RESUME_NOTES.md
 
 # Logs and operating-system files
 *.log

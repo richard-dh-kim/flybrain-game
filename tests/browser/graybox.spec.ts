@@ -23,7 +23,7 @@ interface BrowserSnapshot {
 
 test("loads, follows the pointer, and keeps brain selection automatic", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("The Fly Swats Back");
+  await expect(page).toHaveTitle("Can't Swat This");
   await expect(page.locator("canvas")).toBeVisible();
   await expect(page.locator("#fly-brain-visual")).toBeVisible();
   await expect(page.locator(".brain-node")).toHaveCount(64);

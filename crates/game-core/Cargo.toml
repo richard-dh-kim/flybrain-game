@@ -3,7 +3,7 @@ name = "flybrain-game-core"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "Deterministic simulation core for FlyBrain Swatter"
+description = "Deterministic simulation core for Can't Swat This"
 
 [lib]
 crate-type = ["rlib"]

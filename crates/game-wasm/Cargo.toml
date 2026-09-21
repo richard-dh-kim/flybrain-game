@@ -3,7 +3,7 @@ name = "flybrain-game-wasm"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "WebAssembly boundary for the FlyBrain Swatter simulation"
+description = "WebAssembly boundary for the Can't Swat This simulation"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

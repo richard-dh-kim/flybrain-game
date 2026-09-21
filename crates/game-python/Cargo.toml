@@ -3,7 +3,7 @@ name = "flybrain-game-python"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
-description = "Python boundary for the deterministic FlyBrain Swatter simulation"
+description = "Python boundary for the deterministic Can't Swat This simulation"
 
 [lib]
 name = "flybrain_game"

@@ -2,7 +2,7 @@
   "name": "flybrain-swatter",
   "private": true,
   "version": "0.1.0",
-  "description": "The tables have turned: dodge a giant fly powered by a connectome controller.",
+  "description": "Can't Swat This: dodge a giant fly powered by a connectome controller.",
   "license": "MIT",
   "homepage": "https://richard-dh-kim.github.io/flybrain-game/",
   "repository": {

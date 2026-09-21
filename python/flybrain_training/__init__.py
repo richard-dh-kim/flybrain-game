@@ -1,4 +1,4 @@
-"""Deterministic curriculum, expert, and dataset tools for FlyBrain Swatter."""
+"""Deterministic curriculum, expert, and dataset tools for Can't Swat This."""
 
 from .expert import InterceptExpertV1
 from .schema import ActionV1, HandObservationV1, ObservationV1

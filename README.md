@@ -1,10 +1,10 @@
-# The Fly Swats Back
+# Can't Swat This
 
-[**Play The Fly Swats Back**](https://richard-dh-kim.github.io/flybrain-game/)
+[**Play Can't Swat This**](https://richard-dh-kim.github.io/flybrain-game/)
 
 **The tables have turned. You dodge. The fly swats.**
 
-The Fly Swats Back is a cute browser dodge game. You control a tiny winged
+Can't Swat This is a cute browser dodge game. You control a tiny winged
 dodger while a giant fruit fly tries to catch you with two coordinated hands.
 The fly uses a recurrent neural network constrained by the measured wiring of
 an adult fruit-fly nervous system.

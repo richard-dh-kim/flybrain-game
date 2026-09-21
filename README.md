@@ -27,9 +27,11 @@ An RTX card is not required. A compatible integrated GPU can use WebGPU, and
 the CPU fallback keeps the game playable on unsupported devices. The full
 model is a roughly 148 MiB optional download.
 
-The brain graphic shows 64 live samples from the active controller. Its shape
-and faint links are an illustration; it does not display every neuron or claim
-to show biological thoughts.
+The brain graphic shows 64 live signals from the active controller. For the
+full model, the middle lights select active internal signals across 32 ranges
+of the network, and brightness is normalized separately for sensory, internal,
+and motor groups. Its shape and faint links are an illustration; it does not
+display every neuron or claim to show biological thoughts.
 
 ## What the experiment found
 

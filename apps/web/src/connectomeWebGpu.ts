@@ -1,6 +1,7 @@
 const FORMAT_NAME = "flybrain-connectome-packed";
 const FORMAT_VERSION = 2;
 const EMPTY_SENSORY = 0xffff_ffff;
+const MOTOR_POPULATION = 1;
 const ACTIVITY_SAMPLES = {
   sensory: 16,
   graph: 32,
@@ -226,7 +227,7 @@ export class ConnectomeWebGpu {
       compute: {
         module: device.createShaderModule({
           label: "connectome activity sampler shader",
-          code: activitySamplerShader(ACTIVITY_SAMPLE_COUNT),
+          code: activitySamplerShader(manifest.dimensions.neurons),
         }),
         entryPoint: "main",
       },
@@ -238,6 +239,7 @@ export class ConnectomeWebGpu {
         activityLayout,
         this.stateBuffers[0],
         buffers.activitySampleIndices,
+        buffers.neuronMeta,
         this.outputBuffer,
       ),
       activityBindGroup(
@@ -245,6 +247,7 @@ export class ConnectomeWebGpu {
         activityLayout,
         this.stateBuffers[1],
         buffers.activitySampleIndices,
+        buffers.neuronMeta,
         this.outputBuffer,
       ),
     ];
@@ -418,6 +421,8 @@ async function loadModelBuffers(
   const sensoryIndices = new Uint32Array(await loader.bytes("sensory_indices"));
   const sensoryFeatureIds = new Uint8Array(await loader.bytes("sensory_feature_ids"));
   const sensorySigns = new Int8Array(await loader.bytes("sensory_signs"));
+  const motorIndexBytes = await loader.bytes("motor_indices");
+  const motorIndexValues = new Uint32Array(motorIndexBytes);
   const neuronCount = manifest.dimensions.neurons;
   if (edgeScales.length !== neuronCount || leak.length !== neuronCount) {
     throw new Error("neuron metadata length mismatch");
@@ -435,6 +440,7 @@ async function loadModelBuffers(
     metadataFloats[neuron * 4] = required(edgeScales[neuron], "edge scale");
     metadataFloats[neuron * 4 + 1] = required(leak[neuron], "leak");
     metadataU32[neuron * 4 + 2] = EMPTY_SENSORY;
+    metadataU32[neuron * 4 + 3] = 0;
   }
   for (let index = 0; index < sensoryIndices.length; index += 1) {
     const neuron = required(sensoryIndices[index], "sensory index");
@@ -445,14 +451,21 @@ async function loadModelBuffers(
     }
     metadataU32[neuron * 4 + 2] = feature | (sign > 0 ? 0x100 : 0);
   }
+  for (const neuron of motorIndexValues) {
+    if (neuron >= neuronCount) {
+      throw new Error("motor metadata index is out of range");
+    }
+    const populationOffset = neuron * 4 + 3;
+    metadataU32[populationOffset] = (
+      required(metadataU32[populationOffset], "motor population") | MOTOR_POPULATION
+    );
+  }
   const neuronMeta = bufferFromBytes(
     device,
     "connectome neuron metadata",
     metadataBytes,
     BUFFER_USAGE.STORAGE,
   );
-  const motorIndexBytes = await loader.bytes("motor_indices");
-  const motorIndexValues = new Uint32Array(motorIndexBytes);
   const motorIndices = bufferFromBytes(
     device,
     "connectome motor indices",
@@ -462,7 +475,6 @@ async function loadModelBuffers(
   const activitySampleValues = activitySampleIndices(
     sensoryIndices,
     motorIndexValues,
-    neuronCount,
   );
   const activitySampleIndicesBuffer = bufferFromBytes(
     device,
@@ -591,6 +603,7 @@ function activityBindGroup(
   layout: GPUBindGroupLayout,
   state: GPUBuffer,
   sampleIndices: GPUBuffer,
+  neuronMeta: GPUBuffer,
   output: GPUBuffer,
 ): GPUBindGroup {
   return device.createBindGroup({
@@ -599,7 +612,8 @@ function activityBindGroup(
     entries: [
       { binding: 0, resource: { buffer: state } },
       { binding: 1, resource: { buffer: sampleIndices } },
-      { binding: 2, resource: { buffer: output } },
+      { binding: 2, resource: { buffer: neuronMeta } },
+      { binding: 3, resource: { buffer: output } },
     ],
   });
 }
@@ -673,19 +687,51 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 `;
 }
 
-function activitySamplerShader(sampleCount: number): string {
+function activitySamplerShader(neuronCount: number): string {
   return `
+struct NeuronMeta {
+  edge_scale: f32,
+  leak: f32,
+  sensory: u32,
+  population: u32,
+}
+
 @group(0) @binding(0) var<storage, read> state: array<f32>;
 @group(0) @binding(1) var<storage, read> sample_indices: array<u32>;
-@group(0) @binding(2) var<storage, read_write> output: array<f32>;
+@group(0) @binding(2) var<storage, read> metadata: array<NeuronMeta>;
+@group(0) @binding(3) var<storage, read_write> output: array<f32>;
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   let sample = id.x;
-  if (sample >= ${sampleCount}u) {
+  if (sample >= ${ACTIVITY_SAMPLE_COUNT}u) {
     return;
   }
-  output[3u + sample] = state[sample_indices[sample]];
+  if (sample < ${ACTIVITY_SAMPLES.sensory}u || sample >= ${ACTIVITY_SAMPLES.sensory + ACTIVITY_SAMPLES.graph}u) {
+    output[3u + sample] = state[sample_indices[sample]];
+    return;
+  }
+
+  let bucket = sample - ${ACTIVITY_SAMPLES.sensory}u;
+  let start = (bucket * ${neuronCount}u) / ${ACTIVITY_SAMPLES.graph}u;
+  let end = ((bucket + 1u) * ${neuronCount}u) / ${ACTIVITY_SAMPLES.graph}u;
+  var strongest = 0.0;
+  var strongest_magnitude = 0.0;
+  for (var neuron = start; neuron < end; neuron += 1u) {
+    let neuron_metadata = metadata[neuron];
+    let is_sensory = neuron_metadata.sensory != 0xffffffffu;
+    let is_motor = (neuron_metadata.population & ${MOTOR_POPULATION}u) != 0u;
+    if (is_sensory || is_motor) {
+      continue;
+    }
+    let value = state[neuron];
+    let magnitude = abs(value);
+    if (magnitude > strongest_magnitude) {
+      strongest = value;
+      strongest_magnitude = magnitude;
+    }
+  }
+  output[3u + sample] = strongest;
 }
 `;
 }
@@ -693,14 +739,9 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 function activitySampleIndices(
   sensoryIndices: Uint32Array,
   motorIndices: Uint32Array,
-  neuronCount: number,
 ): Uint32Array {
   const result = new Uint32Array(ACTIVITY_SAMPLE_COUNT);
   result.set(evenlySpacedValues(sensoryIndices, ACTIVITY_SAMPLES.sensory), 0);
-  result.set(
-    evenlySpacedRange(neuronCount, ACTIVITY_SAMPLES.graph),
-    ACTIVITY_SAMPLES.sensory,
-  );
   result.set(
     evenlySpacedValues(motorIndices, ACTIVITY_SAMPLES.motor),
     ACTIVITY_SAMPLES.sensory + ACTIVITY_SAMPLES.graph,
@@ -718,19 +759,6 @@ function evenlySpacedValues(values: Uint32Array, count: number): Uint32Array {
       ? 0
       : Math.round((index * (values.length - 1)) / (count - 1));
     result[index] = required(values[source], "activity sample index");
-  }
-  return result;
-}
-
-function evenlySpacedRange(length: number, count: number): Uint32Array {
-  if (length <= 0) {
-    throw new Error("cannot sample an empty neuron range");
-  }
-  const result = new Uint32Array(count);
-  for (let index = 0; index < count; index += 1) {
-    result[index] = count === 1
-      ? 0
-      : Math.round((index * (length - 1)) / (count - 1));
   }
   return result;
 }

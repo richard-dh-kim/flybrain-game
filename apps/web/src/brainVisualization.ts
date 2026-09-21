@@ -94,15 +94,23 @@ export class FlyBrainVisualization {
     this.sensoryLabel.hidden = !usesMaleCnsSamples;
     this.motorLabel.hidden = !usesMaleCnsSamples;
     this.networkLabel.textContent = usesMaleCnsSamples
-      ? "network"
+      ? "active network"
       : state.mode === "development"
         ? "activity paused"
         : "64 GRU units";
     this.noteElement.textContent = usesMaleCnsSamples
-      ? "The shape follows fruit-fly brain anatomy. Light positions and faint links are an illustrative layout of 16 sensory, 32 whole-brain, and 16 motor samples."
+      ? "The shape and links are illustrative. It shows 16 fixed sensory samples, the strongest current internal signal from each of 32 ranges across the network, and 16 fixed motor samples. Brightness is normalized within each group."
       : state.mode === "development"
         ? "This scripted development controller has no neural state, so the activity lights are paused."
         : "The fly shape is illustrative. In compact mode, all 64 lights are GRU hidden-state values rather than anatomical neuron samples.";
+
+    const regionMaximums = usesMaleCnsSamples
+      ? [
+          maximumMagnitude(state.activity, 0, 16),
+          maximumMagnitude(state.activity, 16, 48),
+          maximumMagnitude(state.activity, 48, 64),
+        ]
+      : undefined;
 
     for (const [index, node] of this.nodes.entries()) {
       const value = state.activity[index] ?? Number.NaN;
@@ -114,7 +122,11 @@ export class FlyBrainVisualization {
         continue;
       }
 
-      const magnitude = Math.min(1, Math.abs(value));
+      const rawMagnitude = Math.abs(value);
+      const regionMaximum = regionMaximums?.[index < 16 ? 0 : index < 48 ? 1 : 2];
+      const magnitude = regionMaximum !== undefined && regionMaximum > 1e-6
+        ? Math.min(1, rawMagnitude / regionMaximum)
+        : Math.min(1, rawMagnitude);
       node.setAttribute("fill", value >= 0 ? "#ffbd59" : "#67d5ff");
       node.setAttribute("fill-opacity", String(0.24 + magnitude * 0.76));
       node.setAttribute("r", String(3.2 + magnitude * 3.4));
@@ -125,6 +137,17 @@ export class FlyBrainVisualization {
       }
     }
   }
+}
+
+function maximumMagnitude(values: ArrayLike<number>, start: number, end: number): number {
+  let maximum = 0;
+  for (let index = start; index < end; index += 1) {
+    const value = values[index];
+    if (value !== undefined && Number.isFinite(value)) {
+      maximum = Math.max(maximum, Math.abs(value));
+    }
+  }
+  return maximum;
 }
 
 function presentationForState(state: BrainVisualizationState): {

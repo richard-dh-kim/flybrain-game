@@ -78,14 +78,16 @@ action while allowing one ordered brain update at a time. If WebGPU or the
 package is unavailable, the game reports the error and returns to the small GRU
 on key `4`.
 
-The worker also runs a 64-thread sampling pass over the same new recurrent
-state used by the motor readout. It returns 16 evenly spaced sensory values, 32
-values spread across the complete neuron index range, and 16 evenly spaced
-motor values in the existing output readback. This increases the readback from
-3 to 67 float32 values without copying the full neural state. The `H` panel
-labels the result as 64 samples from 165,122 neurons and displays its brain-step
-number. Hardware timing should be rechecked with this sampler enabled before
-treating the earlier 5.0/6.9 ms result as the final presentation cost.
+The worker also samples the same new recurrent state used by the motor readout.
+It returns 16 evenly spaced sensory values, the strongest non-sensory/non-motor
+value from each of 32 ranges across the neuron index space, and 16 evenly
+spaced motor values. This increases the readback from 3 to 67 float32 values
+without copying the full neural state. The visualization normalizes brightness
+within the sensory, internal, and motor groups so their different absolute
+scales remain visible. The `H` panel labels the result as 64 signals from
+165,122 neurons and displays its brain-step number. Hardware timing should be
+rechecked with this activity-focused sampler before treating the earlier
+5.0/6.9 ms result as the final presentation cost.
 
 ## Commands
 

@@ -37,6 +37,10 @@ test("validated u16 package runs in a WebGPU worker", async ({ page }) => {
   expect(result.finalDecision?.activity).toHaveLength(64);
   expect(result.finalDecision?.activity?.every(Number.isFinite)).toBe(true);
   expect(result.finalDecision?.activity?.some((value) => Math.abs(value) > 1e-6)).toBe(true);
+  const activeInternalSamples = result.finalDecision?.activity
+    ?.slice(16, 48)
+    .filter((value) => Math.abs(value) > 1e-6).length ?? 0;
+  expect(activeInternalSamples).toBeGreaterThan(16);
   console.log(`WebGPU benchmark: ${JSON.stringify(result)}`);
 });
 
@@ -68,7 +72,7 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   await expect(page.locator(".brain-node")).toHaveCount(64);
   await expect(page.locator("#brain-controller-badge")).toHaveText("FULL MALECNS · LIVE");
   await expect(page.locator("#brain-region-sensory")).toBeVisible();
-  await expect(page.locator("#brain-region-network")).toHaveText("network");
+  await expect(page.locator("#brain-region-network")).toHaveText("active network");
   await expect(page.locator("#brain-region-motor")).toBeVisible();
   await tapKey(page, "h");
   await page.waitForFunction(() => window.__flybrainGame?.snapshot().debugEnabled === true);

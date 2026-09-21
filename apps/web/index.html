@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#211915" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta
       name="description"
       content="The tables have turned: dodge a giant fruit fly's two-handed swats while its connectome-powered brain hunts you."
@@ -12,7 +14,7 @@
   <body>
     <main>
       <section class="masthead" aria-labelledby="game-title">
-        <p class="eyebrow">A cute connectome-powered browser game</p>
+        <p class="eyebrow">A trained fly brain predicts your moves and tries to swat you</p>
         <h1 id="game-title">Can't Swat This</h1>
         <p class="subtitle">The tables have turned. You dodge. The fly swats.</p>
       </section>
@@ -34,8 +36,9 @@
               <span><i class="legend-dot legend-dot--negative"></i> negative signal</span>
             </div>
             <p id="brain-monitor-note" class="brain-monitor__note">
-              The shape follows fruit-fly brain anatomy. Light positions and faint links are an
-              illustrative layout of 16 sensory, 32 whole-brain, and 16 motor samples.
+              The shape and links are illustrative. It shows 16 fixed sensory samples, 32 active
+              internal samples spread across the network, and 16 fixed motor samples. Brightness
+              is normalized within each group.
             </p>
           </div>
           <div class="brain-monitor__stage">
@@ -49,7 +52,8 @@
               <title id="fly-brain-title">Live sampled activity in a stylized fruit-fly brain</title>
               <desc id="fly-brain-description">
                 Two optic lobes surround a central brain and descending motor region. Sixty-four
-                lights change color and brightness using live controller activity.
+                lights change color and brightness using sensory, active internal, and motor
+                signals from the live controller.
               </desc>
               <defs>
                 <radialGradient id="brain-tissue" cx="50%" cy="38%" r="70%">

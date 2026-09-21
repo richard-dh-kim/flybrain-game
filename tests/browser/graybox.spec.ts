@@ -21,8 +21,9 @@ interface BrowserSnapshot {
   };
 }
 
-test("loads, follows the pointer, and switches policy modes", async ({ page }) => {
+test("loads, follows the pointer, and keeps brain selection automatic", async ({ page }) => {
   await page.goto("/");
+  await expect(page).toHaveTitle("The Fly Swats Back");
   await expect(page.locator("canvas")).toBeVisible();
   await expect(page.locator("#fly-brain-visual")).toBeVisible();
   await expect(page.locator(".brain-node")).toHaveCount(64);
@@ -30,14 +31,6 @@ test("loads, follows the pointer, and switches policy modes", async ({ page }) =
   expect((await snapshot(page)).debugPanelVisible).toBe(false);
   await expect(page.locator("#connectome-status")).toBeHidden();
 
-  await tapGameKey(page, "4");
-  await expect.poll(async () => (await snapshot(page)).policyMode).toBe("learned");
-  await expect(page.locator("#brain-controller-badge")).toHaveText(
-    "COMPACT GRU · CPU ONLY",
-  );
-  await expect(page.locator("#brain-region-sensory")).toBeHidden();
-  await expect(page.locator("#brain-region-network")).toHaveText("64 GRU units");
-  await expect(page.locator("#brain-region-motor")).toBeHidden();
   await tapGameKey(page, "h");
   await expect.poll(async () => (await snapshot(page)).debugEnabled).toBe(true);
   await expect.poll(async () => (await snapshot(page)).debugPanelVisible).toBe(true);
@@ -61,7 +54,8 @@ test("loads, follows the pointer, and switches policy modes", async ({ page }) =
   await tapGameKey(page, "3");
   await expect.poll(async () => (await snapshot(page)).policyMode).toBe("predictive");
   await tapGameKey(page, "4");
-  await expect.poll(async () => (await snapshot(page)).policyMode).toBe("learned");
+  await tapGameKey(page, "5");
+  await expect.poll(async () => (await snapshot(page)).policyMode).toBe("predictive");
 
   await tapGameKey(page, "h");
   await expect.poll(async () => (await snapshot(page)).debugPanelVisible).toBe(false);
@@ -96,12 +90,20 @@ test("collision ends the round and restart is immediate", async ({ page }) => {
   expect(restarted.tick).toBeLessThan(hitState.tick);
 });
 
-test("frozen learned GRU runs locally and completes a slap", async ({ page }) => {
+test("CPU fallback activates automatically and completes a slap", async ({ page }) => {
+  await page.route("**/models/connectome-u16-v2/**", (route) => route.abort());
   await page.goto("/");
   await expect(page.locator("canvas")).toBeVisible();
-  await tapGameKey(page, "h");
-  await tapGameKey(page, "4");
+  await expect
+    .poll(async () => (await snapshot(page)).connectome.status)
+    .toBe("error");
   await expect.poll(async () => (await snapshot(page)).policyMode).toBe("learned");
+  await expect(page.locator("#brain-controller-badge")).toHaveText(
+    "COMPACT GRU · CPU FALLBACK",
+  );
+  await expect(page.locator("#brain-region-sensory")).toBeHidden();
+  await expect(page.locator("#brain-region-network")).toHaveText("64 GRU units");
+  await expect(page.locator("#brain-region-motor")).toBeHidden();
   await expect
     .poll(async () => (await snapshot(page)).roundStatus, { timeout: 6_000 })
     .toBe(1);

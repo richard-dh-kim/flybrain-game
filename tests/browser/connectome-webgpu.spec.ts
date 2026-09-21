@@ -88,17 +88,6 @@ test("full connectome game mode uses the WebGPU worker", async ({ page }) => {
   expect(sustained?.connectome.status).toBe("ready");
   expect(sustained?.connectome.pendingSteps).toBeLessThanOrEqual(1);
 
-  await tapKey(page, "3");
-  await page.waitForFunction(() => window.__flybrainGame?.snapshot().policyMode === "predictive");
-  await tapKey(page, "5");
-  await page.waitForFunction(
-    () => (
-      window.__flybrainGame?.snapshot().policyMode === "connectome"
-      && (window.__flybrainGame?.snapshot().connectome.completedSteps ?? 0) > 0
-    ),
-    undefined,
-    { timeout: 5_000 },
-  );
   await tapKey(page, "h");
   await page.waitForFunction(
     () => window.__flybrainGame?.snapshot().debugPanelVisible === false,

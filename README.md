@@ -1,11 +1,13 @@
-# FlyBrain Swatter
+# The Fly Swats Back
 
-[**Play FlyBrain Swatter**](https://richard-dh-kim.github.io/flybrain-game/)
+[**Play The Fly Swats Back**](https://richard-dh-kim.github.io/flybrain-game/)
 
-FlyBrain Swatter is a cute browser dodge game. You control a tiny winged
+**The tables have turned. You dodge. The fly swats.**
+
+The Fly Swats Back is a cute browser dodge game. You control a tiny winged
 dodger while a giant fruit fly tries to catch you with two coordinated hands.
-The fly can use a recurrent neural network constrained by the measured wiring
-of an adult fruit-fly nervous system.
+The fly uses a recurrent neural network constrained by the measured wiring of
+an adult fruit-fly nervous system.
 
 Move with a mouse or touch and survive for 30 seconds. Press `R` to restart and
 `H` to show technical details.
@@ -109,3 +111,10 @@ packages retain source attribution, provenance, and hashes in their manifests.
 Adapted upstream runtime notices are preserved under [`third_party`](third_party).
 
 Deployment details are documented in [docs/deployment.md](docs/deployment.md).
+
+## License
+
+The project's original code is available under the [MIT License](LICENSE).
+MaleCNS data and derived model assets retain their CC BY 4.0 terms and
+attribution. Files under `third_party` remain subject to their included
+licenses and notices.

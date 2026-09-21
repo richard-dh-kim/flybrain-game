@@ -146,9 +146,7 @@ function presentationForState(state: BrainVisualizationState): {
   }
   if (state.mode === "fallback") {
     return {
-      badge: state.fallbackReason
-        ? "COMPACT GRU · CPU FALLBACK"
-        : "COMPACT GRU · CPU ONLY",
+      badge: "COMPACT GRU · CPU FALLBACK",
       status: state.fallbackReason
         ? `Full brain unavailable · ${state.fallbackReason}`
         : "64 live units from the CPU-only compact recurrent controller",

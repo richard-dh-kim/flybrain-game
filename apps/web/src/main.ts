@@ -83,7 +83,7 @@ class GrayboxScene extends Phaser.Scene {
   private debugText!: Phaser.GameObjects.Text;
   private connectomeStatusElement!: HTMLElement;
   private brainVisualization!: FlyBrainVisualization;
-  private policyKeys!: Record<PolicyMode, Phaser.Input.Keyboard.Key>;
+  private policyKeys!: Record<ScriptedPolicyMode, Phaser.Input.Keyboard.Key>;
   private policyMode: PolicyMode = "connectome";
   private learnedPolicy = new LearnedGruPolicy();
   private connectomePolicy = new ConnectomePolicy();
@@ -149,8 +149,6 @@ class GrayboxScene extends Phaser.Scene {
       idle: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       chase: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
       predictive: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
-      learned: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
-      connectome: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
     };
     this.input.on(Phaser.Input.Events.POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
       this.pointerDestination.set(pointer.worldX, pointer.worldY);
@@ -215,7 +213,7 @@ class GrayboxScene extends Phaser.Scene {
       .setVisible(false);
 
     this.add
-      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  4 CPU / 5 FULL  ·  R RESTART  ·  H DETAILS", {
+      .text(WIDTH - 18, HEIGHT - 16, "MOVE: MOUSE / TOUCH  ·  R RESTART  ·  H DETAILS", {
         color: "#d9b98d",
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
         fontSize: "11px",
@@ -256,11 +254,7 @@ class GrayboxScene extends Phaser.Scene {
     if (this.debugEnabled && Phaser.Input.Keyboard.JustDown(this.exportKey)) {
       this.downloadHumanTrajectory();
     }
-    if (Phaser.Input.Keyboard.JustDown(this.policyKeys.learned)) {
-      this.setPolicyMode("learned");
-    } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.connectome)) {
-      this.setPolicyMode("connectome");
-    } else if (this.debugEnabled) {
+    if (this.debugEnabled) {
       if (Phaser.Input.Keyboard.JustDown(this.policyKeys.idle)) {
         this.setPolicyMode("idle");
       } else if (Phaser.Input.Keyboard.JustDown(this.policyKeys.chase)) {
@@ -354,25 +348,18 @@ class GrayboxScene extends Phaser.Scene {
     }
   }
 
-  private setPolicyMode(mode: PolicyMode): void {
+  private setPolicyMode(mode: ScriptedPolicyMode): void {
     this.policyMode = mode;
     this.automaticFallback = false;
     this.learnedPolicy.reset();
     this.connectomePolicy.reset();
     this.connectomeAction = null;
     this.resetRateSample();
-    if (mode === "connectome") {
-      this.connectomePolicy.start();
-    }
     const label = mode === "idle"
       ? "DEV · IDLE [1]"
       : mode === "chase"
         ? "DEV · CURRENT CHASE [2]"
-        : mode === "predictive"
-          ? "DEV · PREDICTIVE [3]"
-          : mode === "learned"
-            ? "COMPACT GRU · CPU ONLY [4]"
-            : "FULL MALECNS · LOADING [5]";
+        : "DEV · PREDICTIVE [3]";
     this.brainText.setText(`FLY BRAIN: ${label}`);
     this.syncConnectomeUi();
   }
@@ -423,7 +410,7 @@ class GrayboxScene extends Phaser.Scene {
       }
     } else {
       this.connectomeStatusElement.textContent =
-        `Full connectome unavailable: ${connectome.error ?? "unknown error"} · using GRU [4]`;
+        `Full connectome unavailable: ${connectome.error ?? "unknown error"} · using CPU fallback`;
     }
   }
 
@@ -940,7 +927,7 @@ class GrayboxScene extends Phaser.Scene {
       `player=(${playerX.toFixed(1)}, ${playerY.toFixed(1)}) vel=(${velocityX.toFixed(2)}, ${velocityY.toFixed(2)})`,
       `mouse=(${mouseX.toFixed(1)}, ${mouseY.toFixed(1)}) hand-target=(${targetX.toFixed(1)}, ${targetY.toFixed(1)}) strike=${Number(this.latestAction.strike)}`,
       ...handLines,
-      "dev: [1] idle  [2] chase  [3] predictive  [4] GRU  [5] MaleCNS  [E] export",
+      "dev: [1] idle  [2] chase  [3] predictive  [E] export",
     ]);
   }
 

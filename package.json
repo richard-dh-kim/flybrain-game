@@ -2,6 +2,15 @@
   "name": "flybrain-swatter",
   "private": true,
   "version": "0.1.0",
+  "description": "A cute browser dodge game powered by a fruit-fly connectome controller.",
+  "homepage": "https://richard-dh-kim.github.io/flybrain-game/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/richard-dh-kim/flybrain-game.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "workspaces": [
     "apps/*"
   ],

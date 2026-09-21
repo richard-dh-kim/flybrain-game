@@ -1,8 +1,8 @@
 # Static deployment
 
-## Selected host
+## Production host
 
-The first public build targets GitHub Pages at:
+The public build is hosted with GitHub Pages at:
 
 `https://richard-dh-kim.github.io/flybrain-game/`
 
@@ -44,17 +44,21 @@ The model is derived from the **MaleCNS v1.0** dataset, available from the
 retains its source and graph hashes in `manifest.json`. The source dataset is
 licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
 
-## First publication
+## Deploying an update
 
-1. Create a GitHub release with tag `connectome-u16-v2` and upload
-   `artifacts/releases/flybrain-connectome-u16-v2.tar.gz` as its asset.
-2. In the repository's **Settings → Pages**, select **GitHub Actions** as the
-   build and deployment source.
-3. Open **Actions → Deploy GitHub Pages → Run workflow** and run it from
+The `connectome-u16-v2` model release and GitHub Actions Pages source are
+already configured. For a code-only update:
+
+1. Push the tested change to `main`.
+2. Open **Actions → Deploy GitHub Pages → Run workflow** and run it from
    `main`.
-4. Open the deployment URL and confirm that the compact controller starts
+3. Open the deployment URL and confirm that the compact controller starts
    immediately, the full model reaches `FULL MALECNS · LIVE` on a WebGPU
    device, and an unsupported device visibly remains on CPU fallback.
+
+For a new model, create a new versioned Release asset and update the release
+tag, archive hash, and package hash pinned in `.github/workflows/pages.yml`
+before running the workflow.
 
 The deployed hardware check is available at
 `https://richard-dh-kim.github.io/flybrain-game/connectome-benchmark.html?ticks=300`.

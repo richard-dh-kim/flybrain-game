@@ -1,129 +1,111 @@
 # FlyBrain Swatter
 
-> Continuing development? Start with [CURRENT.md](CURRENT.md) for the active
-> milestone, Ubuntu/WSL migration notes, verification steps, and next work.
+[**Play FlyBrain Swatter**](https://richard-dh-kim.github.io/flybrain-game/)
 
-FlyBrain Swatter is a browser game in which a tiny winged human dodges the hands of a giant cartoon fruit fly. The long-term controller is a recurrent neural network constrained by the measured connectivity of the adult fruit-fly brain.
+FlyBrain Swatter is a cute browser dodge game. You control a tiny winged
+dodger while a giant fruit fly tries to catch you with two coordinated hands.
+The fly can use a recurrent neural network constrained by the measured wiring
+of an adult fruit-fly nervous system.
 
-The project is deliberately being built in layers:
+Move with a mouse or touch and survive for 30 seconds. Press `R` to restart and
+`H` to show technical details.
 
-1. A deterministic, fun gray-box game.
-2. A scripted predictive opponent that provides a difficulty baseline and training labels.
-3. Conventional learned baselines.
-4. A connectome-constrained controller, evaluated honestly against those baselines.
-5. Static browser deployment with local inference when feasible.
+## The fly brain
 
-No biological-performance or speed claim should be treated as a result until it appears with reproducible measurements in this repository.
+The game starts immediately with a small CPU controller while it loads the
+full model. On a browser with working WebGPU, it then switches to the full
+MaleCNS controller:
 
-## Current status
+- **Full MaleCNS:** 165,122 neuron states and 25,563,197 measured connections,
+  evaluated locally with WebGPU.
+- **CPU fallback:** a compact 19,203-parameter GRU used during loading and on
+  devices without compatible WebGPU.
 
-Phase 0 and the playable Phase 1 gray box are complete. The full retained
-MaleCNS graph passed a bounded forward/backward test on the local RTX 4060 Ti.
-Phase 2 now has versioned simulation observations and actions, deterministic
-curricula, a timing-aware expert, Parquet logging, and visual replay. The first
-Phase 3 MLP and GRU controllers are trained, and the GRU runs locally in the
-browser. Phase 4 now has a first full MaleCNS controller: its fixed measured
-topology carries 165,122 neuron states and produces valid closed-loop actions,
-with 33/33 hits on the varied-start validation suite versus 0/33 for its
-untrained initialization. Phase 5 now has a checksummed inference-only package
-and a Rust core that agrees with PyTorch, but the exact 196 MiB float32 model
-misses the native 60 Hz CPU target. A validated 148 MiB u16 package preserves
-33/33 live hits; its CPU and WASM paths also miss 60 Hz, while a checksummed
-WebGPU worker passes software-adapter correctness and a real RTX browser run at
-5.0 ms median / 6.9 ms p95. Press `5` to load and play against that genuine
-165,122-neuron controller locally. The initial three-seed topology comparison
-is also complete: measured wiring beats a tightly degree-matched shuffle
-overall, while random sparse performs best overall. See [CURRENT.md](CURRENT.md)
-for the exact handoff.
+An RTX card is not required. A compatible integrated GPU can use WebGPU, and
+the CPU fallback keeps the game playable on unsupported devices. The full
+model is a roughly 148 MiB optional download.
 
-## Run the current prototype
+The brain graphic shows 64 live samples from the active controller. Its shape
+and faint links are an illustration; it does not display every neuron or claim
+to show biological thoughts.
+
+## What the experiment found
+
+The connectome controller learned to play, but that alone does not prove that
+biological wiring is best for this task. In a three-seed comparison:
+
+- measured MaleCNS wiring consistently beat a tightly degree-matched shuffle;
+- a broader random-sparse network performed best overall.
+
+The result shows that wiring affects this controller. It does **not** establish
+that the measured biological topology is superior. The full measurements and
+selection rules are in the
+[topology-control report](docs/experiments/phase-4-topology-controls.md). The
+[browser inference report](docs/experiments/phase-5-u16-candidate.md) records
+the quantization, parity, and hardware timing results.
+
+## Run locally
+
+The project uses Node.js 22 and the Rust toolchain pinned in
+`rust-toolchain.toml`.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-The production build regenerates the Rust WebAssembly package before Vite bundles the site:
+A fresh checkout runs with the compact CPU controller. To include the full
+model, download the `flybrain-connectome-u16-v2.tar.gz` asset from the
+[`connectome-u16-v2` release](https://github.com/richard-dh-kim/flybrain-game/releases/tag/connectome-u16-v2),
+extract it into `artifacts/connectome-packed-u16-v2`, and run:
+
+```bash
+npm run prepare:connectome-web
+npm run dev
+```
+
+Build the static site with:
 
 ```bash
 npm run build
 ```
 
-The current build uses pointer or touch movement. A larger fly fills the
-background while two floating hands track from opposite sides and commit to a
-coordinated slap. It includes collision, a 30-second round, and immediate
-restart. Run `npm run prepare:connectome-web` once when the ignored model assets
-are absent. A normal visit starts loading the full MaleCNS controller through
-WebGPU; the small GRU controls the hands during loading and automatically
-remains active on unsupported devices. A dedicated or integrated WebGPU device
-can run the full model, and an RTX card is not required.
+## Verify the project
 
-The fly watches the player and locks onto the committed slap point. The
-wind-up target shrinks before the hands close, while motion streaks, impact
-bursts, and hit/miss reactions make the attack timing visible without changing
-the deterministic simulation or collision rules.
-
-The always-visible brain below the playfield shows 64 live values. With the
-full controller active, those are 16 sensory, 32 whole-graph, and 16 motor
-samples from its 165,122-neuron state. The brain shape is anatomical, while the
-sample positions and faint links are illustrative. Press `H` to show technical
-timing, velocity, targets, collision shapes, phases, and cooldowns. Debug mode
-also enables scripted controller keys `1` through `3` and `E` trajectory
-export. During development, `4` selects the CPU-only compact GRU and `5`
-selects the full MaleCNS controller directly so their behavior and activity
-labels can be compared. Automatic CPU fallback covers browsers without a
-usable WebGPU adapter as well as model loading, verification, or inference
-failures. The green debug marker is the mouse destination and the yellow marker
-is the hand target.
-
-## Static deployment
-
-The first public build targets GitHub Pages. The full model remains outside Git
-as a checksummed release asset; the manual deployment workflow downloads it,
-builds the Vite site for `/flybrain-game/`, and publishes the result. See
-[docs/deployment.md](docs/deployment.md) for the fixed asset hash and first
-publication steps.
-
-Run the automated gameplay gates with:
+The main development checks are:
 
 ```bash
+npm run typecheck
+npm run test:browser
 npm run test:wasm-parity
-npm run test:policies
-npm run test:expert
 npm run test:gru-parity
 npm run test:python
-npm run test:browser
-npm run export:connectome-packed
-npm run test:connectome-packed-parity
-npm run test:connectome-rust-parity
-npm run evaluate:connectome-quantization
-npm run export:connectome-quantized
-npm run test:connectome-quantized-rust-parity
-npm run benchmark:connectome-wasm
+```
+
+WebGPU hardware validation requires the full model and a compatible browser:
+
+```bash
 npm run test:connectome-webgpu
 ```
 
-The first topology controls use the same seed and two-stage training schedule:
+Training, evaluation, export, and parity commands remain in `package.json`.
+Versioned experiment reports and compact metrics are under
+[`docs/experiments`](docs/experiments), while binary interface definitions are
+under [`docs/schemas`](docs/schemas).
 
-```bash
-npm run train:connectome-shuffled-pilot
-npm run train:connectome-shuffled-refine
-npm run train:connectome-random-pilot
-npm run train:connectome-random-refine
-```
+## How it is built
 
-The shuffled control preserves both incoming degrees and the outgoing-degree
-multiset. The random-sparse control preserves each incoming degree but draws
-new unique sending partners. See
-`docs/experiments/phase-4-topology-controls.md` for the fixed comparison rules
-and current evidence.
+- **TypeScript, Phaser, and Vite** render the browser game and interface.
+- **Rust and WebAssembly** provide the deterministic 60 Hz simulation,
+  collision rules, replays, and portable inference support.
+- **Python, PyTorch, and CUDA** handle training and scientific evaluation.
+- **WebGPU in a worker** runs the full sparse recurrent controller without
+  blocking rendering.
 
-## Intended stack
+The source graph comes from the
+[MaleCNS v1.0 dataset](https://male-cns.janelia.org/download/) under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Derived model
+packages retain source attribution, provenance, and hashes in their manifests.
+Adapted upstream runtime notices are preserved under [`third_party`](third_party).
 
-- TypeScript, Vite, and Phaser for the browser presentation.
-- Rust for deterministic simulation, hand paths, collision, replay, and portable inference support.
-- WebAssembly plus a Web Worker for browser-side execution.
-- Python, PyTorch, and CUDA for training and evaluation.
-- `wasm-bindgen` and PyO3/maturin so browser and training code share the same simulation contract.
-
-The working title, package names, and final visual identity may change.
+Deployment details are documented in [docs/deployment.md](docs/deployment.md).
